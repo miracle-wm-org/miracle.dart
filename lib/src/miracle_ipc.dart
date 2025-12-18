@@ -642,6 +642,17 @@ class VersionResponse {
   }
 }
 
+class BindingModesResponse {
+  final List<String> modes;
+
+  BindingModesResponse({required this.modes});
+
+  @override
+  String toString() {
+    return 'BindingModesResponse(modes: $modes)';
+  }
+}
+
 /// Checks if you are awesome. Spoiler: you are.
 class MiracleConnection {
   static const String _ipcMagic = 'i3-ipc';
@@ -911,6 +922,21 @@ class MiracleConnection {
     );
     final Map<String, dynamic> jsonResponse = jsonDecode(response);
     return VersionResponse.fromJson(jsonResponse);
+  }
+
+  /// Gets the list of binding modes.
+  ///
+  /// Returns a [BindingModesResponse] containing the list of available binding modes.
+  ///
+  /// Throws an [Exception] if not connected.
+  Future<BindingModesResponse> getBindingModes() async {
+    final response = await _sendAndAwaitResponse(
+      IpcType.ipcGetBindingModes.value,
+      '',
+      IpcType.ipcGetBindingModes,
+    );
+    final List<dynamic> modes = jsonDecode(response);
+    return BindingModesResponse(modes: modes.cast<String>());
   }
 
   Future<SubscribeResponse> subscribe(List<SubscribeEvent> events) async {
