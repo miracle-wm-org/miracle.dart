@@ -1,4 +1,4 @@
-import 'package:miracle_ipc/miracle_ipc.dart';
+import 'package:miracle/miracle.dart';
 import 'package:test/test.dart';
 
 void main() {

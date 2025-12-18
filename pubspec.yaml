@@ -1,5 +1,5 @@
-name: miracle_ipc
-description: A starting point for Dart libraries or applications.
+name: miracle
+description: A library for interacting with miracle-wm.
 version: 1.0.0
 # repository: https://github.com/my_org/my_repo
 

@@ -605,6 +605,43 @@ class _PendingResponse {
   _PendingResponse({required this.completer, required this.type});
 }
 
+class MarksResponse {
+  final List<String> marks;
+
+  MarksResponse({required this.marks});
+}
+
+/// The version payload.
+class VersionResponse {
+  final int major;
+  final int minor;
+  final int patch;
+  final String humanReadable;
+  final String loadedConfigFilename;
+
+  VersionResponse(
+      {required this.major,
+      required this.minor,
+      required this.patch,
+      required this.humanReadable,
+      required this.loadedConfigFilename});
+
+  factory VersionResponse.fromJson(Map<String, dynamic> json) {
+    return VersionResponse(
+        major: json['major'] as int,
+        minor: json['minor'] as int,
+        patch: json['patch'] as int,
+        humanReadable: json['human_readable'] as String,
+        loadedConfigFilename: json['loaded_config_file_name'] as String);
+  }
+
+  @override
+  String toString() {
+    return 'VersionResponse(major: $major, minor: $minor, patch: $patch, '
+        'humanReadable: "$humanReadable", loadedConfigFilename: "$loadedConfigFilename")';
+  }
+}
+
 /// Checks if you are awesome. Spoiler: you are.
 class MiracleConnection {
   static const String _ipcMagic = 'i3-ipc';
@@ -844,6 +881,36 @@ class MiracleConnection {
     );
     final Map<String, dynamic> jsonResponse = jsonDecode(response);
     return TreeResponseNode.fromJson(jsonResponse);
+  }
+
+  /// Gets the currently set marks.
+  ///
+  /// Returns the [MarksResponse].
+  ///
+  /// Throws an [Exception] if not connected.
+  Future<MarksResponse> getMarks() async {
+    final response = await _sendAndAwaitResponse(
+      IpcType.ipcGetMarks.value,
+      '',
+      IpcType.ipcGetMarks,
+    );
+    final List<dynamic> marks = jsonDecode(response);
+    return MarksResponse(marks: marks.cast<String>());
+  }
+
+  /// Gets the version information.
+  ///
+  /// Returns a [VersionResponse] containing the version details.
+  ///
+  /// Throws an [Exception] if not connected.
+  Future<VersionResponse> getVersion() async {
+    final response = await _sendAndAwaitResponse(
+      IpcType.ipcGetVersion.value,
+      '',
+      IpcType.ipcGetVersion,
+    );
+    final Map<String, dynamic> jsonResponse = jsonDecode(response);
+    return VersionResponse.fromJson(jsonResponse);
   }
 
   Future<SubscribeResponse> subscribe(List<SubscribeEvent> events) async {

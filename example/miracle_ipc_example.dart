@@ -1,4 +1,4 @@
-import 'package:miracle_ipc/miracle_ipc.dart';
+import 'package:miracle/miracle.dart';
 
 void main() async {
   var connection = MiracleConnection();
@@ -12,6 +12,9 @@ void main() async {
   print('\n=== Window Tree ===\n');
   final tree = await connection.getTree();
   print(tree);
+
+  final version = await connection.getVersion();
+  print(version);
 
   // final workspaces = await connection.getWorkspaces();
   // for (var ws in workspaces) {
