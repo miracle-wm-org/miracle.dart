@@ -298,13 +298,13 @@ class OutputMode {
   }
 }
 
-sealed class TreeNode {
+sealed class BaseNode {
   final int id;
   final String name;
   final Rect rect;
   final NodeType type;
 
-  TreeNode(
+  BaseNode(
       {required this.id,
       required this.name,
       required this.rect,
@@ -315,7 +315,7 @@ sealed class TreeNode {
   @override
   String toString() => treeString(0);
 
-  factory TreeNode.fromJson(Map<String, dynamic> json) {
+  factory BaseNode.fromJson(Map<String, dynamic> json) {
     final NodeType? type = NodeType.fromString(json['type'] as String);
     if (type == null) {
       throw Exception('Unknown node type: ${json['type']}');
@@ -334,8 +334,17 @@ sealed class TreeNode {
   }
 }
 
-class RootNode extends TreeNode {
-  final List<TreeNode> nodes;
+/// Represents the root node in the window tree hierarchy.
+///
+/// The root node is the topmost node in the tree and contains all outputs.
+/// There is only one root node per connection.
+///
+/// See also:
+/// * [MiracleConnection.getTree], to retrieve the window tree
+/// * [OutputNode], the type of nodes contained in the root
+class RootNode extends BaseNode {
+  /// The list of child nodes, typically [OutputNode] instances.
+  final List<BaseNode> nodes;
 
   RootNode(
       {required super.id,
@@ -350,10 +359,10 @@ class RootNode extends TreeNode {
     final rect = Rect.fromJson(json['rect'] as Map<String, dynamic>);
     final type = NodeType.fromString(json['type'] as String)!;
 
-    List<TreeNode> nodes = [];
+    List<BaseNode> nodes = [];
     if (json['nodes'] != null) {
       for (final node in json['nodes'] as List<dynamic>) {
-        nodes.add(TreeNode.fromJson(node));
+        nodes.add(BaseNode.fromJson(node));
       }
     }
 
@@ -379,28 +388,80 @@ class RootNode extends TreeNode {
   }
 }
 
-class OutputNode extends TreeNode {
+/// Represents a physical or virtual output (monitor/display) in the window tree.
+///
+/// Output nodes are children of the root node and contain workspace nodes.
+/// Each output represents a display device with its own resolution, scale,
+/// and other display properties.
+///
+/// See also:
+/// * [RootNode], which contains output nodes
+/// * [WorkspaceNode], the type of nodes contained in outputs
+class OutputNode extends BaseNode {
+  /// Whether the output is currently active.
   final bool active;
+
+  /// Whether Display Power Management Signaling (DPMS) is enabled.
   final bool? dpkms;
+
+  /// The scale factor for this output (e.g., 1.0, 1.5, 2.0).
   final double scale;
+
+  /// The scaling filter used for this output.
   final String scaleFilter;
+
+  /// Whether adaptive sync is enabled for this output.
   final bool adaptiveSyncStatus;
+
+  /// The manufacturer name of the output device.
   final String make;
+
+  /// The model name of the output device.
   final String model;
+
+  /// The serial number of the output device.
   final String serial;
+
+  /// The transform/rotation applied to this output.
   final OutputTransform transform;
+
+  /// The layout name or configuration.
   final String layout;
+
+  /// The orientation of the output.
   final String orientation;
+
+  /// Whether the output is visible.
   final bool visible;
+
+  /// Whether the output currently has focus.
   final bool isFocused;
+
+  /// Whether the output is marked as urgent.
   final bool isUrgent;
+
+  /// The border type for this output.
   final BorderType border;
+
+  /// The width of the border in pixels.
   final int borderWidth;
+
+  /// The window rectangle coordinates and dimensions.
   final Rect windowRect;
+
+  /// The decoration rectangle coordinates and dimensions.
   final Rect decoRect;
+
+  /// The geometry rectangle coordinates and dimensions.
   final Rect geometry;
-  final List<TreeNode> nodes;
+
+  /// The list of child nodes, typically [WorkspaceNode] instances.
+  final List<BaseNode> nodes;
+
+  /// The list of available display modes for this output.
   final List<OutputMode> modes;
+
+  /// The currently active display mode.
   final OutputMode currentMode;
 
   OutputNode({
@@ -438,10 +499,10 @@ class OutputNode extends TreeNode {
     final rect = Rect.fromJson(json['rect'] as Map<String, dynamic>);
     final type = NodeType.fromString(json['type'] as String)!;
 
-    List<TreeNode> nodes = [];
+    List<BaseNode> nodes = [];
     if (json['nodes'] != null) {
       for (final node in json['nodes'] as List<dynamic>) {
-        nodes.add(TreeNode.fromJson(node));
+        nodes.add(BaseNode.fromJson(node));
       }
     }
 
@@ -491,21 +552,58 @@ class OutputNode extends TreeNode {
   }
 }
 
-class WorkspaceNode extends TreeNode {
+/// Represents a workspace in the window tree.
+///
+/// Workspaces are containers for windows and other containers. They are
+/// children of output nodes and contain container nodes representing windows
+/// and other UI elements.
+///
+/// See also:
+/// * [OutputNode], which contains workspace nodes
+/// * [ContainerNode], the type of nodes contained in workspaces
+/// * [MiracleConnection.getWorkspaces], to list all workspaces
+class WorkspaceNode extends BaseNode {
+  /// The workspace number, if assigned.
   final int num;
+
+  /// Whether the workspace is currently visible on its output.
   final bool visible;
+
+  /// Whether the workspace currently has focus.
   final bool focused;
+
+  /// Whether the workspace is marked as urgent.
   final bool urgent;
+
+  /// The name of the output this workspace belongs to.
   final String output;
+
+  /// The border type for this workspace.
   final BorderType border;
+
+  /// The width of the border in pixels.
   final int borderWidth;
+
+  /// The layout algorithm used for this workspace's children.
   final ContainerLayout layout;
+
+  /// The orientation of the workspace layout.
   final String orientation;
+
+  /// The window rectangle coordinates and dimensions.
   final Rect windowRect;
+
+  /// The decoration rectangle coordinates and dimensions.
   final Rect decoRect;
+
+  /// The geometry rectangle coordinates and dimensions.
   final Rect geometry;
-  final List<TreeNode> floatingNodes;
-  final List<TreeNode> nodes;
+
+  /// The list of floating nodes in this workspace.
+  final List<BaseNode> floatingNodes;
+
+  /// The list of tiled child nodes, typically [ContainerNode] instances.
+  final List<BaseNode> nodes;
 
   WorkspaceNode({
     required super.id,
@@ -534,17 +632,17 @@ class WorkspaceNode extends TreeNode {
     final rect = Rect.fromJson(json['rect'] as Map<String, dynamic>);
     final type = NodeType.fromString(json['type'] as String)!;
 
-    List<TreeNode> nodes = [];
+    List<BaseNode> nodes = [];
     if (json['nodes'] != null) {
       for (final node in json['nodes'] as List<dynamic>) {
-        nodes.add(TreeNode.fromJson(node));
+        nodes.add(BaseNode.fromJson(node));
       }
     }
 
-    List<TreeNode> floatingNodes = [];
+    List<BaseNode> floatingNodes = [];
     if (json['floating_nodes'] != null) {
       for (final node in json['floating_nodes'] as List<dynamic>) {
-        floatingNodes.add(TreeNode.fromJson(node));
+        floatingNodes.add(BaseNode.fromJson(node));
       }
     }
 
@@ -590,30 +688,85 @@ class WorkspaceNode extends TreeNode {
   }
 }
 
-class ContainerNode extends TreeNode {
+/// Represents a container node in the window tree.
+///
+/// Container nodes represent windows, split containers, or other UI elements.
+/// They are children of workspace nodes and can contain other container nodes,
+/// forming a nested tree structure.
+///
+/// See also:
+/// * [WorkspaceNode], which contains container nodes
+class ContainerNode extends BaseNode {
+  /// Whether this container currently has focus.
   final bool focused;
+
+  /// The list of focused child node IDs within this container.
   final List<int> focus;
+
+  /// The border type for this container.
   final BorderType border;
+
+  /// The width of the border in pixels.
   final int borderWidth;
+
+  /// The layout algorithm used for this container's children.
   final ContainerLayout layout;
+
+  /// The orientation of the container layout.
   final String orientation;
+
+  /// The percentage of parent space this container occupies, if applicable.
   final double? percent;
+
+  /// The window rectangle coordinates and dimensions.
   final Rect windowRect;
+
+  /// The decoration rectangle coordinates and dimensions.
   final Rect decoRect;
+
+  /// The geometry rectangle coordinates and dimensions.
   final Rect geometry;
+
+  /// The X11 window ID, if this is an X11 window.
   final int? window;
+
+  /// Whether this container is marked as urgent.
   final bool urgent;
-  final List<TreeNode> floatingNodes;
+
+  /// The list of floating child nodes.
+  final List<BaseNode> floatingNodes;
+
+  /// Whether this container is sticky (visible on all workspaces).
   final bool sticky;
+
+  /// The fullscreen mode state (0 for not fullscreen).
   final int fullscreenMode;
+
+  /// The process ID of the application, if available.
   final int? pid;
+
+  /// The application ID (typically for Wayland windows), if available.
   final String? appId;
+
+  /// Whether this container is visible.
   final bool visible;
+
+  /// The shell type (e.g., "xdg_shell", "xwayland").
   final String shell;
+
+  /// Whether this container inhibits idle.
   final bool inhibitIdle;
+
+  /// Information about idle inhibitors.
   final dynamic idleInhibitors;
+
+  /// Additional window properties (X11-specific).
   final Map<String, dynamic> windowProperties;
-  final List<TreeNode> nodes;
+
+  /// The list of child container nodes.
+  final List<BaseNode> nodes;
+
+  /// The scratchpad state, if this container is in the scratchpad.
   final String? scratchpadState;
 
   ContainerNode({
@@ -653,17 +806,17 @@ class ContainerNode extends TreeNode {
     final rect = Rect.fromJson(json['rect'] as Map<String, dynamic>);
     final type = NodeType.fromString(json['type'] as String)!;
 
-    List<TreeNode> nodes = [];
+    List<BaseNode> nodes = [];
     if (json['nodes'] != null) {
       for (final node in json['nodes'] as List<dynamic>) {
-        nodes.add(TreeNode.fromJson(node));
+        nodes.add(BaseNode.fromJson(node));
       }
     }
 
-    List<TreeNode> floatingNodes = [];
+    List<BaseNode> floatingNodes = [];
     if (json['floating_nodes'] != null) {
       for (final node in json['floating_nodes'] as List<dynamic>) {
-        floatingNodes.add(TreeNode.fromJson(node));
+        floatingNodes.add(BaseNode.fromJson(node));
       }
     }
 
@@ -729,29 +882,52 @@ class _PendingResponse {
   _PendingResponse({required this.completer, required this.type});
 }
 
-class MarksResponse {
+/// Created in response to a [MiracleConnection.getMarks] call.
+///
+/// See also:
+/// * [MiracleConnection.getMarks], to get the currently set marks
+class MarksResult {
+  /// The list of marks currently set.
   final List<String> marks;
 
-  MarksResponse({required this.marks});
+  MarksResult({required this.marks});
+
+  factory MarksResult.fromJson(List<dynamic> json) {
+    return MarksResult(marks: json.cast<String>());
+  }
 }
 
-/// The version payload.
-class VersionResponse {
+/// Created in response to a [MiracleConnection.getVersion] call.
+///
+/// Contains version information about the running Miracle window manager.
+///
+/// See also:
+/// * [MiracleConnection.getVersion], to get the version information
+class VersionResult {
+  /// The major version number.
   final int major;
+
+  /// The minor version number.
   final int minor;
+
+  /// The patch version number.
   final int patch;
+
+  /// A human-readable version string.
   final String humanReadable;
+
+  /// The path to the loaded configuration file.
   final String loadedConfigFilename;
 
-  VersionResponse(
+  VersionResult(
       {required this.major,
       required this.minor,
       required this.patch,
       required this.humanReadable,
       required this.loadedConfigFilename});
 
-  factory VersionResponse.fromJson(Map<String, dynamic> json) {
-    return VersionResponse(
+  factory VersionResult.fromJson(Map<String, dynamic> json) {
+    return VersionResult(
         major: json['major'] as int,
         minor: json['minor'] as int,
         patch: json['patch'] as int,
@@ -766,10 +942,19 @@ class VersionResponse {
   }
 }
 
-class BindingModesResponse {
+/// Created in response to a [MiracleConnection.getBindingModes] call.
+///
+/// See also:
+/// * [MiracleConnection.getBindingModes], to get the list of available binding modes
+class BindingModesResult {
+  /// The list of available binding mode names.
   final List<String> modes;
 
-  BindingModesResponse({required this.modes});
+  BindingModesResult({required this.modes});
+
+  factory BindingModesResult.fromJson(List<dynamic> json) {
+    return BindingModesResult(modes: json.cast<String>());
+  }
 
   @override
   String toString() {
@@ -777,13 +962,23 @@ class BindingModesResponse {
   }
 }
 
-class BindingStateResponse {
+/// Created in response to a [MiracleConnection.getBindingState] call.
+///
+/// See also:
+/// * [MiracleConnection.getBindingState], to get the current binding state
+/// * [MiracleConnection.getBindingModes], to get the available modes
+class BindingStateResult {
+  /// The name of the current binding state.
+  ///
+  /// This will be a mode found in[BindingModesResult].
+  ///
+  /// Use [MiracleConnection.getBindingModes] to list the available modes.
   final String name;
 
-  BindingStateResponse({required this.name});
+  BindingStateResult({required this.name});
 
-  factory BindingStateResponse.fromJson(Map<String, dynamic> json) {
-    return BindingStateResponse(name: json['name'] as String);
+  factory BindingStateResult.fromJson(Map<String, dynamic> json) {
+    return BindingStateResult(name: json['name'] as String);
   }
 
   @override
@@ -792,13 +987,18 @@ class BindingStateResponse {
   }
 }
 
-class TickResponse {
+/// Created in response to a [MiracleConnection.sendTick] call.
+///
+/// See also:
+/// * [MiracleConnection.sendTick], to send a tick event
+class TickResult {
+  /// Always `true` to indicate the tick was successfully sent.
   final bool success;
 
-  TickResponse({required this.success});
+  TickResult({required this.success});
 
-  factory TickResponse.fromJson(Map<String, dynamic> json) {
-    return TickResponse(success: json['success'] as bool);
+  factory TickResult.fromJson(Map<String, dynamic> json) {
+    return TickResult(success: json['success'] as bool);
   }
 
   @override
@@ -807,13 +1007,18 @@ class TickResponse {
   }
 }
 
-class SyncResponse {
+/// Created in response to a [MiracleConnection.sync] call.
+///
+/// See also:
+/// * [MiracleConnection.sync], to send a sync request
+class SyncResult {
+  /// Always `"default"` to indicate the sync was successful.
   final String name;
 
-  SyncResponse({required this.name});
+  SyncResult({required this.name});
 
-  factory SyncResponse.fromJson(Map<String, dynamic> json) {
-    return SyncResponse(name: json['name'] as String);
+  factory SyncResult.fromJson(Map<String, dynamic> json) {
+    return SyncResult(name: json['name'] as String);
   }
 
   @override
@@ -875,7 +1080,33 @@ class EventWorkspace extends Event {
   }
 }
 
-/// Checks if you are awesome. Spoiler: you are.
+/// A connection Miracle's IPC.
+///
+/// Callers may use the methods defined on the class to send requests to
+/// Miracle.
+///
+/// Alternatively, callers may listen to events on miracle by first calling
+/// [MiracleConnection.subscribe] and then listening on the stream.
+///
+/// Example:
+/// ```dart
+/// // Create a new connection
+/// final connection = MiracleConnection();
+///
+/// // Connect to Miracle
+/// await connection.connect();
+///
+/// // Send a command to switch to workspace 2
+/// await connection.sendCommand('workspace 2');
+///
+/// // Subscribe to workspace events
+/// await connection.subscribe(event: 'workspace');
+///
+/// // Listen to incoming events
+/// await for (final event in connection) {
+///   print('Received event: $event');
+/// }
+/// ```
 class MiracleConnection extends Stream<Event> {
   static const String _ipcMagic = 'i3-ipc';
   static const int _headerSize =
@@ -888,7 +1119,17 @@ class MiracleConnection extends Stream<Event> {
   final StreamController<Event> _eventController =
       StreamController<Event>.broadcast();
 
-  Future<void> connect() async {
+  /// Connect to Miracle's IPC socket.
+  ///
+  /// [onSocketError] will be called when there is an error on the connection.
+  /// [onSocketDone] will be called when the connection is closed.
+  ///
+  /// Returns a future. Once the future resolves, the connection is established.
+  ///
+  /// This will thrown an [Exception] if the MIRACLESOCK environment variable
+  /// cannot be found or if we cannot connect to the socket.
+  Future<void> connect(
+      {void Function()? onSocketError, void Function()? onSocketDone}) async {
     final socketPath = Platform.environment['MIRACLESOCK'];
     if (socketPath == null || socketPath.isEmpty) {
       throw Exception('MIRACLESOCK environment variable is not set');
@@ -898,9 +1139,10 @@ class MiracleConnection extends Stream<Event> {
       InternetAddress(socketPath, type: InternetAddressType.unix),
       0,
     );
-    _startListening();
+    _startListening(onSocketError, onSocketDone);
   }
 
+  /// Disconnect from Miracle's IPC socket.
   void disconnect() {
     _socketSubscription?.cancel();
     _socketSubscription = null;
@@ -926,15 +1168,16 @@ class MiracleConnection extends Stream<Event> {
   }
 
   /// Starts listening for incoming messages from the socket
-  void _startListening() {
+  void _startListening(
+      void Function()? onSocketError, void Function()? onSocketDone) {
     if (_socket == null) {
       throw Exception('Not connected');
     }
 
     _socketSubscription = _socket!.listen(
       _onData,
-      onError: _onError,
-      onDone: _onDone,
+      onError: onSocketError,
+      onDone: onSocketDone,
       cancelOnError: false,
     );
   }
@@ -943,11 +1186,8 @@ class MiracleConnection extends Stream<Event> {
   void _onData(List<int> data) {
     _buffer.add(data);
 
-    // Try to parse complete messages from the buffer
     while (true) {
       final bytes = _buffer.toBytes();
-
-      // Need at least the header to proceed
       if (bytes.length < _headerSize) {
         break;
       }
@@ -984,14 +1224,8 @@ class MiracleConnection extends Stream<Event> {
       // Extract payload
       final payloadBytes = bytes.sublist(_headerSize, totalMessageSize);
       final payload = utf8.decode(payloadBytes);
-
-      // Get the IpcType enum value
       final payloadType = IpcType.fromValue(payloadTypeValue);
-
-      // Handle the complete message
       _handleMessage(payloadType, payloadTypeValue, payload);
-
-      // Remove the processed message from the buffer
       _buffer.clear();
       if (bytes.length > totalMessageSize) {
         _buffer.add(bytes.sublist(totalMessageSize));
@@ -1032,16 +1266,6 @@ class MiracleConnection extends Stream<Event> {
     final Map<String, dynamic> jsonPayload = jsonDecode(payload);
     final event = Event.fromJson(type, jsonPayload);
     _eventController.add(event);
-  }
-
-  /// Handles socket errors
-  void _onError(error) {
-    print('Socket error: $error');
-  }
-
-  /// Handles socket disconnection
-  void _onDone() {
-    print('Socket closed');
   }
 
   /// Sends a raw message using the i3-ipc protocol format:
@@ -1096,13 +1320,15 @@ class MiracleConnection extends Stream<Event> {
     return _pendingResponses.last.completer.future;
   }
 
-  /// Sends the provided command string to the IPC server.
+  /// Sends the provided [command] string to the IPC server.
   ///
-  /// Throws an Exception if not connected.
-  Future<List<CommandResult>> command(String message) async {
+  /// Throws an [Exception] if not connected.
+  ///
+  /// Returns a [CommandResult].
+  Future<List<CommandResult>> command(String command) async {
     final response = await _sendAndAwaitResponse(
       IpcType.ipcCommand.value,
-      message,
+      command,
       IpcType.ipcCommand,
     );
     final List<dynamic> jsonResponse = jsonDecode(response);
@@ -1117,10 +1343,10 @@ class MiracleConnection extends Stream<Event> {
 
   /// Gets the list of workspaces.
   ///
-  /// Returns a list of WorkspaceResponse objects containing information about
+  /// Returns a list of [WorkspaceResult] objects containing information about
   /// all workspaces.
   ///
-  /// Throws an Exception if not connected.
+  /// Throws an [Exception] if not connected.
   Future<List<WorkspaceResult>> getWorkspaces() async {
     final response = await _sendAndAwaitResponse(
       IpcType.ipcGetWorkspaces.value,
@@ -1135,108 +1361,108 @@ class MiracleConnection extends Stream<Event> {
 
   /// Gets the window tree structure.
   ///
-  /// Returns the root TreeNode containing the entire tree of outputs,
+  /// Returns the root [BaseNode] containing the entire tree of outputs,
   /// workspaces, and containers.
   ///
-  /// Throws an Exception if not connected.
-  Future<TreeNode> getTree() async {
+  /// Throws an [Exception] if not connected.
+  Future<BaseNode> getTree() async {
     final response = await _sendAndAwaitResponse(
       IpcType.ipcGetTree.value,
       '',
       IpcType.ipcGetTree,
     );
     final Map<String, dynamic> jsonResponse = jsonDecode(response);
-    return TreeNode.fromJson(jsonResponse);
+    return BaseNode.fromJson(jsonResponse);
   }
 
   /// Gets the currently set marks.
   ///
-  /// Returns the [MarksResponse].
+  /// Returns the [MarksResult].
   ///
   /// Throws an [Exception] if not connected.
-  Future<MarksResponse> getMarks() async {
+  Future<MarksResult> getMarks() async {
     final response = await _sendAndAwaitResponse(
       IpcType.ipcGetMarks.value,
       '',
       IpcType.ipcGetMarks,
     );
     final List<dynamic> marks = jsonDecode(response);
-    return MarksResponse(marks: marks.cast<String>());
+    return MarksResult.fromJson(marks);
   }
 
   /// Gets the version information.
   ///
-  /// Returns a [VersionResponse] containing the version details.
+  /// Returns a [VersionResult] containing the version details.
   ///
   /// Throws an [Exception] if not connected.
-  Future<VersionResponse> getVersion() async {
+  Future<VersionResult> getVersion() async {
     final response = await _sendAndAwaitResponse(
       IpcType.ipcGetVersion.value,
       '',
       IpcType.ipcGetVersion,
     );
     final Map<String, dynamic> jsonResponse = jsonDecode(response);
-    return VersionResponse.fromJson(jsonResponse);
+    return VersionResult.fromJson(jsonResponse);
   }
 
   /// Gets the list of binding modes.
   ///
-  /// Returns a [BindingModesResponse] containing the list of available binding modes.
+  /// Returns a [BindingModesResult] containing the list of available binding modes.
   ///
   /// Throws an [Exception] if not connected.
-  Future<BindingModesResponse> getBindingModes() async {
+  Future<BindingModesResult> getBindingModes() async {
     final response = await _sendAndAwaitResponse(
       IpcType.ipcGetBindingModes.value,
       '',
       IpcType.ipcGetBindingModes,
     );
     final List<dynamic> modes = jsonDecode(response);
-    return BindingModesResponse(modes: modes.cast<String>());
+    return BindingModesResult(modes: modes.cast<String>());
   }
 
   /// Gets the current binding state.
   ///
-  /// Returns a [BindingStateResponse] containing the name of the current binding state.
+  /// Returns a [BindingStateResult] containing the name of the current binding state.
   ///
   /// Throws an [Exception] if not connected.
-  Future<BindingStateResponse> getBindingState() async {
+  Future<BindingStateResult> getBindingState() async {
     final response = await _sendAndAwaitResponse(
       IpcType.ipcGetBindingState.value,
       '',
       IpcType.ipcGetBindingState,
     );
     final Map<String, dynamic> jsonResponse = jsonDecode(response);
-    return BindingStateResponse.fromJson(jsonResponse);
+    return BindingStateResult.fromJson(jsonResponse);
   }
 
   /// Sends a tick event.
   ///
-  /// Returns a [TickResponse] which always contains `success: true`.
+  /// Returns a [TickResult] which always contains `success: true`.
   ///
   /// Throws an [Exception] if not connected.
-  Future<TickResponse> sendTick() async {
+  Future<TickResult> sendTick() async {
     final response = await _sendAndAwaitResponse(
       IpcType.ipcSendTick.value,
       '',
       IpcType.ipcSendTick,
     );
     final Map<String, dynamic> jsonResponse = jsonDecode(response);
-    return TickResponse.fromJson(jsonResponse);
+    return TickResult.fromJson(jsonResponse);
   }
 
   /// Sends a sync request.
   ///
-  /// Returns a [SyncResponse] which always contains `name: "default"`.
+  /// Returns a [SyncResult] which always contains `name: "default"`.
   ///
   /// Throws an [Exception] if not connected.
-  Future<SyncResponse> sync() async {
+  Future<SyncResult> sync() async {
     final response = await _sendAndAwaitResponse(
       IpcType.ipcSync.value,
       '',
       IpcType.ipcSync,
     );
     final Map<String, dynamic> jsonResponse = jsonDecode(response);
-    return SyncResponse.fromJson(jsonResponse);
+    return SyncResult.fromJson(jsonResponse);
   }
 
   Future<SubscribeResult> subscribe(List<SubscriptionType> events) async {
