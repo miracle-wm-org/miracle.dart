@@ -1011,15 +1011,15 @@ class MiracleConnection {
     return BindingStateResponse.fromJson(jsonResponse);
   }
 
-  /// Sends a tick event with an optional payload.
+  /// Sends a tick event.
   ///
   /// Returns a [TickResponse] which always contains `success: true`.
   ///
   /// Throws an [Exception] if not connected.
-  Future<TickResponse> sendTick([String payload = '']) async {
+  Future<TickResponse> sendTick() async {
     final response = await _sendAndAwaitResponse(
       IpcType.ipcSendTick.value,
-      payload,
+      '',
       IpcType.ipcSendTick,
     );
     final Map<String, dynamic> jsonResponse = jsonDecode(response);
