@@ -28,17 +28,22 @@ void main() async {
   final sync = await connection.sync();
   print(sync);
 
-  // final workspaces = await connection.getWorkspaces();
-  // for (var ws in workspaces) {
-  //   print(
-  //     'Workspace ${ws.num}: ${ws.name}, focused: ${ws.focused}, visible: ${ws.visible}, urgent: ${ws.urgent}, output: ${ws.output}, rect: (${ws.rect.x}, ${ws.rect.y}, ${ws.rect.width}, ${ws.rect.height})',
-  //   );
-  // }
-  // await connection.subscribe([SubscribeEvent.workspace]).then((response) {
-  //   if (response.success) {
-  //     print('Subscribed successfully to workspace events.');
-  //   } else {
-  //     print('Failed to subscribe: ${response.error}');
-  //   }
-  // });
+  // Listen for events
+  connection.listen((event) {
+    print('Received event: $event');
+  });
+
+  // Subscribe to workspace events
+  final subscribeResponse =
+      await connection.subscribe([SubscriptionType.workspace]);
+  if (subscribeResponse.success) {
+    print('Subscribed successfully to workspace events.');
+  } else {
+    print('Failed to subscribe: ${subscribeResponse.error}');
+  }
+
+  print('Listening for events (press Ctrl+C to exit)');
+
+  // Keep the program running to receive events
+  await Future.delayed(Duration(days: 1));
 }

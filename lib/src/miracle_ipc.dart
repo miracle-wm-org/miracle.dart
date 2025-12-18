@@ -3,7 +3,14 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:async';
 
-/// IPC message types for i3/sway compatible IPC protocol
+/// IPC message types for miracle.
+///
+/// Callers should prefer using the methods on [MiracleConnection] to send
+/// ipc commands.
+///
+/// See also:
+/// * [MiracleConnection], a convenient wrapper around the raw miracle IPC
+///   mechanism.
 enum IpcType {
   // i3 command types - see i3's I3_REPLY_TYPE constants
   ipcCommand(0),
@@ -64,7 +71,11 @@ enum IpcType {
   }
 }
 
-enum SubscribeEvent {
+/// An event that can be subscribed to.
+///
+/// See also:
+/// * [MiracleConnection.subscribe], the method to subscribe to events
+enum SubscriptionType {
   workspace,
   output,
   mode,
@@ -75,25 +86,50 @@ enum SubscribeEvent {
   input,
 }
 
-class CommandResponse {
+/// Created in response to a [MiracleConnection.command] call.
+///
+/// See also:
+/// * [MiracleConnection.command], to send a command
+class CommandResult {
+  /// `true` if the command was issued, otherwise `false`.
   final bool success;
+
+  /// A parse error, if any.
+  ///
+  /// This may be set when [success] is `true`.
   final String? parseError;
+
+  /// A generic error, if any.
+  ///
+  /// This may be set when [success] is `true`.
   final String? error;
 
-  CommandResponse({required this.success, this.parseError, this.error});
+  CommandResult({required this.success, this.parseError, this.error});
 }
 
-class SubscribeResponse {
+/// Created in response to a [MiracleConnection.subscribe] call.
+///
+/// See also:
+/// * [MiracleConnection.subscribe], to subscribe to an event
+class SubscribeResult {
   final bool success;
   final String? error;
 
-  SubscribeResponse({required this.success, this.error});
+  SubscribeResult({required this.success, this.error});
 }
 
+/// A generic rectangle.
 class Rect {
+  /// The x coordinate.
   final int x;
+
+  /// The y coordinate.
   final int y;
+
+  /// The width.
   final int width;
+
+  /// The height.
   final int height;
 
   Rect({
@@ -113,16 +149,33 @@ class Rect {
   }
 }
 
-class WorkspaceResponse {
-  final int num;
-  final String name;
+/// Created in response to the [MiracleConnection.getWorkspaces] call.
+///
+/// See also:
+/// * [MiracleConnection.getWorkspaces], to list the available workspaces
+class WorkspaceResult {
+  /// The number of the workspace, if any.
+  final int? num;
+
+  /// The name of the workspace, if any.
+  final String? name;
+
+  /// `true` if the workspace is visible, otherwise `false`.
   final bool visible;
+
+  /// `true` if the workspace is focused, otherwise `false`.
   final bool focused;
+
+  /// `true` if the workspace is urgent, otherwise `false`.
   final bool urgent;
+
+  /// The name of the output to which this workspace belongs.
   final String output;
+
+  /// The rectangle of this workspace.
   final Rect rect;
 
-  WorkspaceResponse({
+  WorkspaceResult({
     required this.num,
     required this.name,
     required this.visible,
@@ -132,10 +185,10 @@ class WorkspaceResponse {
     required this.rect,
   });
 
-  factory WorkspaceResponse.fromJson(Map<String, dynamic> json) {
-    return WorkspaceResponse(
-      num: json['num'] as int,
-      name: json['name'] as String,
+  factory WorkspaceResult.fromJson(Map<String, dynamic> json) {
+    return WorkspaceResult(
+      num: json['num'] as int?,
+      name: json['name'] as String?,
       visible: json['visible'] as bool,
       focused: json['focused'] as bool,
       urgent: json['urgent'] as bool,
@@ -245,13 +298,13 @@ class OutputMode {
   }
 }
 
-sealed class TreeResponseNode {
+sealed class TreeNode {
   final int id;
   final String name;
   final Rect rect;
   final NodeType type;
 
-  TreeResponseNode(
+  TreeNode(
       {required this.id,
       required this.name,
       required this.rect,
@@ -262,136 +315,56 @@ sealed class TreeResponseNode {
   @override
   String toString() => treeString(0);
 
-  factory TreeResponseNode.fromJson(Map<String, dynamic> json) {
+  factory TreeNode.fromJson(Map<String, dynamic> json) {
     final NodeType? type = NodeType.fromString(json['type'] as String);
     if (type == null) {
       throw Exception('Unknown node type: ${json['type']}');
     }
 
-    List<TreeResponseNode> nodes = [];
-    if (json['nodes'] != null) {
-      for (final node in json['nodes'] as List<dynamic>) {
-        nodes.add(TreeResponseNode.fromJson(node));
-      }
-    }
-
-    List<TreeResponseNode> floatingNodes = [];
-    if (json['floating_nodes'] != null) {
-      for (final node in json['floating_nodes'] as List<dynamic>) {
-        floatingNodes.add(TreeResponseNode.fromJson(node));
-      }
-    }
-
-    final id = json['id'] as int;
-    final name = json['name'] as String;
-    final rect = Rect.fromJson(json['rect'] as Map<String, dynamic>);
-
     switch (type) {
       case NodeType.root:
-        return RootResponseNode(
-          id: id,
-          name: name,
-          rect: rect,
-          nodes: nodes,
-          type: type,
-        );
+        return RootNode.fromJson(json);
       case NodeType.output:
-        return OutputResponseNode(
-            id: id,
-            name: name,
-            rect: rect,
-            nodes: nodes,
-            type: type,
-            active: json['active'] as bool,
-            dpkms: json['dpkms'] as bool?,
-            scale: json['scale'] as double,
-            scaleFilter: json['scale_filter'],
-            adaptiveSyncStatus: json['adaptive_sync_status'] as bool,
-            make: json['make'],
-            model: json['model'],
-            serial: json['serial'],
-            transform: OutputTransform.fromString(json['transform'])!,
-            layout: json['layout'],
-            orientation: json['orientation'],
-            visible: json['visible'] as bool,
-            isFocused: json['focused'] as bool,
-            isUrgent: json['urgent'] as bool,
-            border: BorderType.fromString(json['border'])!,
-            borderWidth: json['current_border_width'] as int,
-            windowRect: Rect.fromJson(json['window_rect']),
-            decoRect: Rect.fromJson(json['deco_rect']),
-            geometry: Rect.fromJson(json['geometry']),
-            modes: (json['modes'] as List<dynamic>).map((final elementJson) {
-              return OutputMode.fromJson(elementJson);
-            }).toList(),
-            currentMode: OutputMode.fromJson(json['current_mode']));
+        return OutputNode.fromJson(json);
       case NodeType.workspace:
-        return WorkspaceResponseNode(
-          id: id,
-          name: name,
-          rect: rect,
-          type: type,
-          num: json['num'] as int,
-          visible: json['visible'] as bool,
-          focused: json['focused'] as bool,
-          urgent: json['urgent'] as bool,
-          output: json['output'] as String,
-          border: BorderType.fromString(json['border'])!,
-          borderWidth: json['current_border_width'] as int,
-          layout: ContainerLayout.fromString(json['layout'] as String)!,
-          orientation: json['orientation'] as String,
-          windowRect:
-              Rect.fromJson(json['window_rect'] as Map<String, dynamic>),
-          decoRect: Rect.fromJson(json['deco_rect'] as Map<String, dynamic>),
-          geometry: Rect.fromJson(json['geometry'] as Map<String, dynamic>),
-          floatingNodes: floatingNodes,
-          nodes: nodes,
-        );
+        return WorkspaceNode.fromJson(json);
       case NodeType.container:
-        return ContainerResponseNode(
-          id: id,
-          name: name,
-          rect: rect,
-          type: type,
-          focused: json['focused'] as bool,
-          focus: (json['focus'] as List<dynamic>).cast<int>(),
-          border: BorderType.fromString(json['border'])!,
-          borderWidth: json['current_border_width'] as int,
-          layout: ContainerLayout.fromString(json['layout'] as String)!,
-          orientation: json['orientation'] as String,
-          percent: json['percent'] as double?,
-          windowRect:
-              Rect.fromJson(json['window_rect'] as Map<String, dynamic>),
-          decoRect: Rect.fromJson(json['deco_rect'] as Map<String, dynamic>),
-          geometry: Rect.fromJson(json['geometry'] as Map<String, dynamic>),
-          window: json['window'] as int?,
-          urgent: json['urgent'] as bool,
-          floatingNodes: floatingNodes,
-          sticky: json['sticky'] as bool,
-          fullscreenMode: json['fullscreen_mode'] as int,
-          pid: json['pid'] as int?,
-          appId: json['app_id'] as String?,
-          visible: json['visible'] as bool,
-          shell: json['shell'] as String,
-          inhibitIdle: json['inhibit_idle'] as bool,
-          idleInhibitors: json['idle_inhibitors'],
-          windowProperties: json['window_properties'] as Map<String, dynamic>,
-          nodes: nodes,
-          scratchpadState: json['scratchpad_state'] as String?,
-        );
+        return ContainerNode.fromJson(json);
     }
   }
 }
 
-class RootResponseNode extends TreeResponseNode {
-  final List<TreeResponseNode> nodes;
+class RootNode extends TreeNode {
+  final List<TreeNode> nodes;
 
-  RootResponseNode(
+  RootNode(
       {required super.id,
       required super.name,
       required super.rect,
       required super.type,
       required this.nodes});
+
+  factory RootNode.fromJson(Map<String, dynamic> json) {
+    final id = json['id'] as int;
+    final name = json['name'] as String;
+    final rect = Rect.fromJson(json['rect'] as Map<String, dynamic>);
+    final type = NodeType.fromString(json['type'] as String)!;
+
+    List<TreeNode> nodes = [];
+    if (json['nodes'] != null) {
+      for (final node in json['nodes'] as List<dynamic>) {
+        nodes.add(TreeNode.fromJson(node));
+      }
+    }
+
+    return RootNode(
+      id: id,
+      name: name,
+      rect: rect,
+      type: type,
+      nodes: nodes,
+    );
+  }
 
   @override
   String treeString([int depth = 0]) {
@@ -406,7 +379,7 @@ class RootResponseNode extends TreeResponseNode {
   }
 }
 
-class OutputResponseNode extends TreeResponseNode {
+class OutputNode extends TreeNode {
   final bool active;
   final bool? dpkms;
   final double scale;
@@ -426,11 +399,11 @@ class OutputResponseNode extends TreeResponseNode {
   final Rect windowRect;
   final Rect decoRect;
   final Rect geometry;
-  final List<TreeResponseNode> nodes;
+  final List<TreeNode> nodes;
   final List<OutputMode> modes;
   final OutputMode currentMode;
 
-  OutputResponseNode({
+  OutputNode({
     required super.id,
     required super.name,
     required super.rect,
@@ -459,6 +432,51 @@ class OutputResponseNode extends TreeResponseNode {
     required this.currentMode,
   });
 
+  factory OutputNode.fromJson(Map<String, dynamic> json) {
+    final id = json['id'] as int;
+    final name = json['name'] as String;
+    final rect = Rect.fromJson(json['rect'] as Map<String, dynamic>);
+    final type = NodeType.fromString(json['type'] as String)!;
+
+    List<TreeNode> nodes = [];
+    if (json['nodes'] != null) {
+      for (final node in json['nodes'] as List<dynamic>) {
+        nodes.add(TreeNode.fromJson(node));
+      }
+    }
+
+    return OutputNode(
+      id: id,
+      name: name,
+      rect: rect,
+      type: type,
+      active: json['active'] as bool,
+      dpkms: json['dpkms'] as bool?,
+      scale: json['scale'] as double,
+      scaleFilter: json['scale_filter'],
+      adaptiveSyncStatus: json['adaptive_sync_status'] as bool,
+      make: json['make'],
+      model: json['model'],
+      serial: json['serial'],
+      transform: OutputTransform.fromString(json['transform'])!,
+      layout: json['layout'],
+      orientation: json['orientation'],
+      visible: json['visible'] as bool,
+      isFocused: json['focused'] as bool,
+      isUrgent: json['urgent'] as bool,
+      border: BorderType.fromString(json['border'])!,
+      borderWidth: json['current_border_width'] as int,
+      windowRect: Rect.fromJson(json['window_rect']),
+      decoRect: Rect.fromJson(json['deco_rect']),
+      geometry: Rect.fromJson(json['geometry']),
+      modes: (json['modes'] as List<dynamic>).map((final elementJson) {
+        return OutputMode.fromJson(elementJson);
+      }).toList(),
+      currentMode: OutputMode.fromJson(json['current_mode']),
+      nodes: nodes,
+    );
+  }
+
   @override
   String treeString([int depth = 0]) {
     final indent = '  ' * depth;
@@ -473,7 +491,7 @@ class OutputResponseNode extends TreeResponseNode {
   }
 }
 
-class WorkspaceResponseNode extends TreeResponseNode {
+class WorkspaceNode extends TreeNode {
   final int num;
   final bool visible;
   final bool focused;
@@ -486,10 +504,10 @@ class WorkspaceResponseNode extends TreeResponseNode {
   final Rect windowRect;
   final Rect decoRect;
   final Rect geometry;
-  final List<TreeResponseNode> floatingNodes;
-  final List<TreeResponseNode> nodes;
+  final List<TreeNode> floatingNodes;
+  final List<TreeNode> nodes;
 
-  WorkspaceResponseNode({
+  WorkspaceNode({
     required super.id,
     required super.name,
     required super.rect,
@@ -509,6 +527,48 @@ class WorkspaceResponseNode extends TreeResponseNode {
     required this.floatingNodes,
     required this.nodes,
   });
+
+  factory WorkspaceNode.fromJson(Map<String, dynamic> json) {
+    final id = json['id'] as int;
+    final name = json['name'] as String;
+    final rect = Rect.fromJson(json['rect'] as Map<String, dynamic>);
+    final type = NodeType.fromString(json['type'] as String)!;
+
+    List<TreeNode> nodes = [];
+    if (json['nodes'] != null) {
+      for (final node in json['nodes'] as List<dynamic>) {
+        nodes.add(TreeNode.fromJson(node));
+      }
+    }
+
+    List<TreeNode> floatingNodes = [];
+    if (json['floating_nodes'] != null) {
+      for (final node in json['floating_nodes'] as List<dynamic>) {
+        floatingNodes.add(TreeNode.fromJson(node));
+      }
+    }
+
+    return WorkspaceNode(
+      id: id,
+      name: name,
+      rect: rect,
+      type: type,
+      num: json['num'] as int,
+      visible: json['visible'] as bool,
+      focused: json['focused'] as bool,
+      urgent: json['urgent'] as bool,
+      output: json['output'] as String,
+      border: BorderType.fromString(json['border'])!,
+      borderWidth: json['current_border_width'] as int,
+      layout: ContainerLayout.fromString(json['layout'] as String)!,
+      orientation: json['orientation'] as String,
+      windowRect: Rect.fromJson(json['window_rect'] as Map<String, dynamic>),
+      decoRect: Rect.fromJson(json['deco_rect'] as Map<String, dynamic>),
+      geometry: Rect.fromJson(json['geometry'] as Map<String, dynamic>),
+      floatingNodes: floatingNodes,
+      nodes: nodes,
+    );
+  }
 
   @override
   String treeString([int depth = 0]) {
@@ -530,7 +590,7 @@ class WorkspaceResponseNode extends TreeResponseNode {
   }
 }
 
-class ContainerResponseNode extends TreeResponseNode {
+class ContainerNode extends TreeNode {
   final bool focused;
   final List<int> focus;
   final BorderType border;
@@ -543,7 +603,7 @@ class ContainerResponseNode extends TreeResponseNode {
   final Rect geometry;
   final int? window;
   final bool urgent;
-  final List<TreeResponseNode> floatingNodes;
+  final List<TreeNode> floatingNodes;
   final bool sticky;
   final int fullscreenMode;
   final int? pid;
@@ -553,10 +613,10 @@ class ContainerResponseNode extends TreeResponseNode {
   final bool inhibitIdle;
   final dynamic idleInhibitors;
   final Map<String, dynamic> windowProperties;
-  final List<TreeResponseNode> nodes;
+  final List<TreeNode> nodes;
   final String? scratchpadState;
 
-  ContainerResponseNode({
+  ContainerNode({
     required super.id,
     required super.name,
     required super.rect,
@@ -586,6 +646,58 @@ class ContainerResponseNode extends TreeResponseNode {
     required this.nodes,
     this.scratchpadState,
   });
+
+  factory ContainerNode.fromJson(Map<String, dynamic> json) {
+    final id = json['id'] as int;
+    final name = json['name'] as String;
+    final rect = Rect.fromJson(json['rect'] as Map<String, dynamic>);
+    final type = NodeType.fromString(json['type'] as String)!;
+
+    List<TreeNode> nodes = [];
+    if (json['nodes'] != null) {
+      for (final node in json['nodes'] as List<dynamic>) {
+        nodes.add(TreeNode.fromJson(node));
+      }
+    }
+
+    List<TreeNode> floatingNodes = [];
+    if (json['floating_nodes'] != null) {
+      for (final node in json['floating_nodes'] as List<dynamic>) {
+        floatingNodes.add(TreeNode.fromJson(node));
+      }
+    }
+
+    return ContainerNode(
+      id: id,
+      name: name,
+      rect: rect,
+      type: type,
+      focused: json['focused'] as bool,
+      focus: (json['focus'] as List<dynamic>).cast<int>(),
+      border: BorderType.fromString(json['border'])!,
+      borderWidth: json['current_border_width'] as int,
+      layout: ContainerLayout.fromString(json['layout'] as String)!,
+      orientation: json['orientation'] as String,
+      percent: json['percent'] as double?,
+      windowRect: Rect.fromJson(json['window_rect'] as Map<String, dynamic>),
+      decoRect: Rect.fromJson(json['deco_rect'] as Map<String, dynamic>),
+      geometry: Rect.fromJson(json['geometry'] as Map<String, dynamic>),
+      window: json['window'] as int?,
+      urgent: json['urgent'] as bool,
+      floatingNodes: floatingNodes,
+      sticky: json['sticky'] as bool,
+      fullscreenMode: json['fullscreen_mode'] as int,
+      pid: json['pid'] as int?,
+      appId: json['app_id'] as String?,
+      visible: json['visible'] as bool,
+      shell: json['shell'] as String,
+      inhibitIdle: json['inhibit_idle'] as bool,
+      idleInhibitors: json['idle_inhibitors'],
+      windowProperties: json['window_properties'] as Map<String, dynamic>,
+      nodes: nodes,
+      scratchpadState: json['scratchpad_state'] as String?,
+    );
+  }
 
   @override
   String treeString([int depth = 0]) {
@@ -710,8 +822,61 @@ class SyncResponse {
   }
 }
 
+sealed class Event {
+  Event({required this.type});
+  final IpcType type;
+
+  factory Event.fromJson(IpcType type, Map<String, dynamic> json) {
+    switch (type) {
+      case IpcType.ipcEventWorkspace:
+        return EventWorkspace(
+            workspaceEventType:
+                WorkspaceEventType.fromString(json['change'] as String),
+            old: json['old'] != null
+                ? WorkspaceNode.fromJson(json['old'])
+                : null,
+            current: WorkspaceNode.fromJson(json['current']));
+      default:
+        throw UnsupportedError('Unsupported event of type $type');
+    }
+  }
+
+  @override
+  String toString() {
+    return 'Event(type: $type)';
+  }
+}
+
+enum WorkspaceEventType {
+  init,
+  empty,
+  focus,
+  rename;
+
+  factory WorkspaceEventType.fromString(String s) {
+    return WorkspaceEventType.values.firstWhere((e) => e.name == s);
+  }
+}
+
+class EventWorkspace extends Event {
+  final WorkspaceEventType workspaceEventType;
+  final WorkspaceNode? old;
+  final WorkspaceNode current;
+
+  EventWorkspace(
+      {required this.workspaceEventType,
+      required this.old,
+      required this.current})
+      : super(type: IpcType.ipcEventWorkspace);
+
+  @override
+  String toString() {
+    return 'EventWorkspace(type: $type, workspaceEventType: $workspaceEventType, old: $old, current: $current)';
+  }
+}
+
 /// Checks if you are awesome. Spoiler: you are.
-class MiracleConnection {
+class MiracleConnection extends Stream<Event> {
   static const String _ipcMagic = 'i3-ipc';
   static const int _headerSize =
       14; // 6 bytes magic + 4 bytes length + 4 bytes type
@@ -719,7 +884,9 @@ class MiracleConnection {
   Socket? _socket;
   StreamSubscription? _socketSubscription;
   final BytesBuilder _buffer = BytesBuilder();
-  List<_PendingResponse> _pendingResponses = [];
+  final List<_PendingResponse> _pendingResponses = [];
+  final StreamController<Event> _eventController =
+      StreamController<Event>.broadcast();
 
   Future<void> connect() async {
     final socketPath = Platform.environment['MIRACLESOCK'];
@@ -740,6 +907,22 @@ class MiracleConnection {
     _socket?.close();
     _socket = null;
     _buffer.clear();
+    _eventController.close();
+  }
+
+  @override
+  StreamSubscription<Event> listen(
+    void Function(Event event)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) {
+    return _eventController.stream.listen(
+      onData,
+      onError: onError,
+      onDone: onDone,
+      cancelOnError: cancelOnError,
+    );
   }
 
   /// Starts listening for incoming messages from the socket
@@ -822,18 +1005,33 @@ class MiracleConnection {
     int payloadTypeValue,
     String payload,
   ) {
-    // Check if there is a pending response waiting for this type
-    List<_PendingResponse> toRemove = [];
-    for (var i = 0; i < _pendingResponses.length; i++) {
-      final pending = _pendingResponses[i];
-      if (pending.type == payloadType) {
-        pending.completer.complete(payload);
-        toRemove.add(pending);
-      }
-    }
-    _pendingResponses.removeWhere((p) => toRemove.contains(p));
+    // Check if this is an event (high bit set)
+    final isEvent = (payloadTypeValue & 0x80000000) != 0;
 
-    // TODO: Dispatch to appropriate handlers based on message type
+    if (isEvent) {
+      // Handle event messages by emitting them to the stream
+      if (payloadType != null) {
+        _handleEvent(payloadType, payload);
+      }
+    } else {
+      // Check if there is a pending response waiting for this type
+      List<_PendingResponse> toRemove = [];
+      for (var i = 0; i < _pendingResponses.length; i++) {
+        final pending = _pendingResponses[i];
+        if (pending.type == payloadType) {
+          pending.completer.complete(payload);
+          toRemove.add(pending);
+        }
+      }
+      _pendingResponses.removeWhere((p) => toRemove.contains(p));
+    }
+  }
+
+  /// Handles event messages by parsing and emitting them to the stream
+  void _handleEvent(IpcType type, String payload) {
+    final Map<String, dynamic> jsonPayload = jsonDecode(payload);
+    final event = Event.fromJson(type, jsonPayload);
+    _eventController.add(event);
   }
 
   /// Handles socket errors
@@ -901,7 +1099,7 @@ class MiracleConnection {
   /// Sends the provided command string to the IPC server.
   ///
   /// Throws an Exception if not connected.
-  Future<List<CommandResponse>> command(String message) async {
+  Future<List<CommandResult>> command(String message) async {
     final response = await _sendAndAwaitResponse(
       IpcType.ipcCommand.value,
       message,
@@ -909,7 +1107,7 @@ class MiracleConnection {
     );
     final List<dynamic> jsonResponse = jsonDecode(response);
     return jsonResponse.map((item) {
-      return CommandResponse(
+      return CommandResult(
         success: item['success'] ?? false,
         parseError: item['parse_error'],
         error: item['error'],
@@ -923,7 +1121,7 @@ class MiracleConnection {
   /// all workspaces.
   ///
   /// Throws an Exception if not connected.
-  Future<List<WorkspaceResponse>> getWorkspaces() async {
+  Future<List<WorkspaceResult>> getWorkspaces() async {
     final response = await _sendAndAwaitResponse(
       IpcType.ipcGetWorkspaces.value,
       '',
@@ -931,24 +1129,24 @@ class MiracleConnection {
     );
     final List<dynamic> jsonResponse = jsonDecode(response);
     return jsonResponse.map((item) {
-      return WorkspaceResponse.fromJson(item as Map<String, dynamic>);
+      return WorkspaceResult.fromJson(item as Map<String, dynamic>);
     }).toList();
   }
 
   /// Gets the window tree structure.
   ///
-  /// Returns the root TreeResponseNode containing the entire tree of outputs,
+  /// Returns the root TreeNode containing the entire tree of outputs,
   /// workspaces, and containers.
   ///
   /// Throws an Exception if not connected.
-  Future<TreeResponseNode> getTree() async {
+  Future<TreeNode> getTree() async {
     final response = await _sendAndAwaitResponse(
       IpcType.ipcGetTree.value,
       '',
       IpcType.ipcGetTree,
     );
     final Map<String, dynamic> jsonResponse = jsonDecode(response);
-    return TreeResponseNode.fromJson(jsonResponse);
+    return TreeNode.fromJson(jsonResponse);
   }
 
   /// Gets the currently set marks.
@@ -1041,24 +1239,24 @@ class MiracleConnection {
     return SyncResponse.fromJson(jsonResponse);
   }
 
-  Future<SubscribeResponse> subscribe(List<SubscribeEvent> events) async {
+  Future<SubscribeResult> subscribe(List<SubscriptionType> events) async {
     final eventStrings = events.map((e) {
       switch (e) {
-        case SubscribeEvent.workspace:
+        case SubscriptionType.workspace:
           return 'workspace';
-        case SubscribeEvent.output:
+        case SubscriptionType.output:
           return 'output';
-        case SubscribeEvent.mode:
+        case SubscriptionType.mode:
           return 'mode';
-        case SubscribeEvent.window:
+        case SubscriptionType.window:
           return 'window';
-        case SubscribeEvent.binding:
+        case SubscriptionType.binding:
           return 'binding';
-        case SubscribeEvent.shutdown:
+        case SubscriptionType.shutdown:
           return 'shutdown';
-        case SubscribeEvent.tick:
+        case SubscriptionType.tick:
           return 'tick';
-        case SubscribeEvent.input:
+        case SubscriptionType.input:
           return 'input';
       }
     }).toList();
@@ -1072,7 +1270,7 @@ class MiracleConnection {
     final Map<String, dynamic> jsonResponse = jsonDecode(response);
 
     // For simplicity, assume subscription is always successful
-    return SubscribeResponse(
+    return SubscribeResult(
       success: jsonResponse['success'] ?? false,
       error: jsonResponse['error'],
     );
