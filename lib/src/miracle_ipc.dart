@@ -695,6 +695,21 @@ class TickResponse {
   }
 }
 
+class SyncResponse {
+  final String name;
+
+  SyncResponse({required this.name});
+
+  factory SyncResponse.fromJson(Map<String, dynamic> json) {
+    return SyncResponse(name: json['name'] as String);
+  }
+
+  @override
+  String toString() {
+    return 'SyncResponse(name: "$name")';
+  }
+}
+
 /// Checks if you are awesome. Spoiler: you are.
 class MiracleConnection {
   static const String _ipcMagic = 'i3-ipc';
@@ -1009,6 +1024,21 @@ class MiracleConnection {
     );
     final Map<String, dynamic> jsonResponse = jsonDecode(response);
     return TickResponse.fromJson(jsonResponse);
+  }
+
+  /// Sends a sync request.
+  ///
+  /// Returns a [SyncResponse] which always contains `name: "default"`.
+  ///
+  /// Throws an [Exception] if not connected.
+  Future<SyncResponse> sync() async {
+    final response = await _sendAndAwaitResponse(
+      IpcType.ipcSync.value,
+      '',
+      IpcType.ipcSync,
+    );
+    final Map<String, dynamic> jsonResponse = jsonDecode(response);
+    return SyncResponse.fromJson(jsonResponse);
   }
 
   Future<SubscribeResponse> subscribe(List<SubscribeEvent> events) async {

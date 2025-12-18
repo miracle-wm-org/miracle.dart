@@ -25,6 +25,9 @@ void main() async {
   final tick = await connection.sendTick();
   print(tick);
 
+  final sync = await connection.sync();
+  print(sync);
+
   // final workspaces = await connection.getWorkspaces();
   // for (var ws in workspaces) {
   //   print(
