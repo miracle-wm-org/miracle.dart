@@ -647,9 +647,28 @@ class BindingModesResponse {
 
   BindingModesResponse({required this.modes});
 
+  factory BindingModesResponse.fromJson(List<dynamic> json) {
+    return BindingModesResponse(modes: json.cast<String>());
+  }
+
   @override
   String toString() {
     return 'BindingModesResponse(modes: $modes)';
+  }
+}
+
+class BindingStateResponse {
+  final String name;
+
+  BindingStateResponse({required this.name});
+
+  factory BindingStateResponse.fromJson(Map<String, dynamic> json) {
+    return BindingStateResponse(name: json['name'] as String);
+  }
+
+  @override
+  String toString() {
+    return 'BindingStateResponse(name: "$name")';
   }
 }
 
@@ -935,8 +954,23 @@ class MiracleConnection {
       '',
       IpcType.ipcGetBindingModes,
     );
-    final List<dynamic> modes = jsonDecode(response);
-    return BindingModesResponse(modes: modes.cast<String>());
+    final List<dynamic> jsonResponse = jsonDecode(response);
+    return BindingModesResponse.fromJson(jsonResponse);
+  }
+
+  /// Gets the current binding state.
+  ///
+  /// Returns a [BindingStateResponse] containing the name of the current binding state.
+  ///
+  /// Throws an [Exception] if not connected.
+  Future<BindingStateResponse> getBindingState() async {
+    final response = await _sendAndAwaitResponse(
+      IpcType.ipcGetBindingState.value,
+      '',
+      IpcType.ipcGetBindingState,
+    );
+    final Map<String, dynamic> jsonResponse = jsonDecode(response);
+    return BindingStateResponse.fromJson(jsonResponse);
   }
 
   Future<SubscribeResponse> subscribe(List<SubscribeEvent> events) async {

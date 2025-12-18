@@ -19,6 +19,9 @@ void main() async {
   final modes = await connection.getBindingModes();
   print(modes);
 
+  final bindingState = await connection.getBindingState();
+  print(bindingState);
+
   // final workspaces = await connection.getWorkspaces();
   // for (var ws in workspaces) {
   //   print(
