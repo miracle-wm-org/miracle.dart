@@ -22,6 +22,9 @@ void main() async {
   final bindingState = await connection.getBindingState();
   print(bindingState);
 
+  final tick = await connection.sendTick();
+  print(tick);
+
   // final workspaces = await connection.getWorkspaces();
   // for (var ws in workspaces) {
   //   print(

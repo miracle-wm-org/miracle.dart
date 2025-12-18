@@ -12,16 +12,23 @@ enum IpcType {
   ipcGetOutputs(3),
   ipcGetTree(4),
   ipcGetMarks(5),
+
+  /// Unused.
   ipcGetBarConfig(6),
   ipcGetVersion(7),
   ipcGetBindingModes(8),
+
+  /// Unused.
   ipcGetConfig(9),
   ipcSendTick(10),
   ipcSync(11),
   ipcGetBindingState(12),
 
   // sway-specific command types
+  /// Unused.
   ipcGetInputs(100),
+
+  /// Unused.
   ipcGetSeats(101),
 
   // Events sent from sway to clients. Events have the highest bit set.
@@ -29,13 +36,18 @@ enum IpcType {
   ipcEventOutput(0x80000000 | 1),
   ipcEventMode(0x80000000 | 2),
   ipcEventWindow(0x80000000 | 3),
+
+  /// Unused.
   ipcEventBarconfigUpdate(0x80000000 | 4),
   ipcEventBinding(0x80000000 | 5),
   ipcEventShutdown(0x80000000 | 6),
   ipcEventTick(0x80000000 | 7),
 
   // sway-specific event types
+  /// Unused.
   ipcEventBarStateUpdate(0x80000000 | 20),
+
+  /// Unused.
   ipcEventInput(0x80000000 | 21);
 
   const IpcType(this.value);
@@ -647,10 +659,6 @@ class BindingModesResponse {
 
   BindingModesResponse({required this.modes});
 
-  factory BindingModesResponse.fromJson(List<dynamic> json) {
-    return BindingModesResponse(modes: json.cast<String>());
-  }
-
   @override
   String toString() {
     return 'BindingModesResponse(modes: $modes)';
@@ -669,6 +677,21 @@ class BindingStateResponse {
   @override
   String toString() {
     return 'BindingStateResponse(name: "$name")';
+  }
+}
+
+class TickResponse {
+  final bool success;
+
+  TickResponse({required this.success});
+
+  factory TickResponse.fromJson(Map<String, dynamic> json) {
+    return TickResponse(success: json['success'] as bool);
+  }
+
+  @override
+  String toString() {
+    return 'TickResponse(success: $success)';
   }
 }
 
@@ -954,8 +977,8 @@ class MiracleConnection {
       '',
       IpcType.ipcGetBindingModes,
     );
-    final List<dynamic> jsonResponse = jsonDecode(response);
-    return BindingModesResponse.fromJson(jsonResponse);
+    final List<dynamic> modes = jsonDecode(response);
+    return BindingModesResponse(modes: modes.cast<String>());
   }
 
   /// Gets the current binding state.
@@ -971,6 +994,21 @@ class MiracleConnection {
     );
     final Map<String, dynamic> jsonResponse = jsonDecode(response);
     return BindingStateResponse.fromJson(jsonResponse);
+  }
+
+  /// Sends a tick event with an optional payload.
+  ///
+  /// Returns a [TickResponse] which always contains `success: true`.
+  ///
+  /// Throws an [Exception] if not connected.
+  Future<TickResponse> sendTick([String payload = '']) async {
+    final response = await _sendAndAwaitResponse(
+      IpcType.ipcSendTick.value,
+      payload,
+      IpcType.ipcSendTick,
+    );
+    final Map<String, dynamic> jsonResponse = jsonDecode(response);
+    return TickResponse.fromJson(jsonResponse);
   }
 
   Future<SubscribeResponse> subscribe(List<SubscribeEvent> events) async {
