@@ -202,7 +202,8 @@ enum NodeType {
   root,
   output,
   workspace,
-  container;
+  container,
+  floatingContainer;
 
   static NodeType? fromString(String value) {
     switch (value) {
@@ -214,6 +215,8 @@ enum NodeType {
         return NodeType.workspace;
       case 'con':
         return NodeType.container;
+      case 'floating_con':
+        return NodeType.floatingContainer;
       default:
         return null;
     }
@@ -329,6 +332,7 @@ sealed class BaseNode {
       case NodeType.workspace:
         return WorkspaceNode.fromJson(json);
       case NodeType.container:
+      case NodeType.floatingContainer:
         return ContainerNode.fromJson(json);
     }
   }
