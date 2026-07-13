@@ -1133,14 +1133,16 @@ class MiracleConnection extends Stream<Event> {
   /// This will thrown an [Exception] if the MIRACLESOCK environment variable
   /// cannot be found or if we cannot connect to the socket.
   Future<void> connect(
-      {void Function()? onSocketError, void Function()? onSocketDone}) async {
-    final socketPath = Platform.environment['MIRACLESOCK'];
-    if (socketPath == null || socketPath.isEmpty) {
+      {String? socketPath,
+      void Function()? onSocketError,
+      void Function()? onSocketDone}) async {
+    final path = socketPath ?? Platform.environment['MIRACLESOCK'];
+    if (path == null || path.isEmpty) {
       throw Exception('MIRACLESOCK environment variable is not set');
     }
 
     _socket = await Socket.connect(
-      InternetAddress(socketPath, type: InternetAddressType.unix),
+      InternetAddress(path, type: InternetAddressType.unix),
       0,
     );
     _startListening(onSocketError, onSocketDone);
