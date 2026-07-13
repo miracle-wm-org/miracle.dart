@@ -6,7 +6,10 @@ void main() async {
   // Establish the connection.
   final MiracleConnection connection = MiracleConnection();
   try {
-    await connection.connect();
+    await connection.connect(
+      onSocketError: (error, stackTrace) => print('Socket error: $error'),
+      onSocketDone: () => print('Socket closed'),
+    );
   } catch (e) {
     print('Unable to connect to the socket: $e');
     exit(1);

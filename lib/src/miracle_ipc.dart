@@ -1125,7 +1125,11 @@ class MiracleConnection extends Stream<Event> {
 
   /// Connect to Miracle's IPC socket.
   ///
-  /// [onSocketError] will be called when there is an error on the connection.
+  /// [socketPath] is the path of the socket to connect to. If it is omitted,
+  /// the path is read from the MIRACLESOCK environment variable.
+  ///
+  /// [onSocketError] will be called with the error and its stack trace when
+  /// there is an error on the connection.
   /// [onSocketDone] will be called when the connection is closed.
   ///
   /// Returns a future. Once the future resolves, the connection is established.
@@ -1134,7 +1138,7 @@ class MiracleConnection extends Stream<Event> {
   /// cannot be found or if we cannot connect to the socket.
   Future<void> connect(
       {String? socketPath,
-      void Function()? onSocketError,
+      void Function(Object error, StackTrace stackTrace)? onSocketError,
       void Function()? onSocketDone}) async {
     final path = socketPath ?? Platform.environment['MIRACLESOCK'];
     if (path == null || path.isEmpty) {
@@ -1175,7 +1179,8 @@ class MiracleConnection extends Stream<Event> {
 
   /// Starts listening for incoming messages from the socket
   void _startListening(
-      void Function()? onSocketError, void Function()? onSocketDone) {
+      void Function(Object error, StackTrace stackTrace)? onSocketError,
+      void Function()? onSocketDone) {
     if (_socket == null) {
       throw Exception('Not connected');
     }
