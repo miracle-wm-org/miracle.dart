@@ -1,5 +1,40 @@
 # Changelog
 
+## 2.1.0
+
+Covers the urgency support added in
+[miracle-wm#952](https://github.com/miracle-wm-org/miracle-wm/pull/952). A
+window that asks to be raised while it is off screen — on a workspace its
+output is not currently showing, or stashed on the scratchpad — is flagged as
+urgent instead of being allowed to steal focus, and the flag clears once it is
+focused. Urgency propagates up the tree, so a split container, workspace or
+output is urgent whenever any node beneath it is.
+
+The `urgent` fields were already decoded, but miracle always sent `false` for
+them and this package documented them as legacy. They now carry real values,
+and the two new `change` values that announce them are modelled.
+
+### API additions
+
+- `WindowChange.urgent` and `WorkspaceChange.urgent`. miracle emits both
+  events together: the `window` event says which window changed, and the
+  `workspace` event lets a bar that watches workspaces rather than windows see
+  it without walking the tree. The workspace event carries no `old` workspace.
+- `BaseNode.isUrgent`, a uniform accessor over `ContainerNode.urgent`,
+  `WorkspaceNode.urgent` and `OutputNode.isUrgent`. `RootNode.isUrgent` is
+  always `false`, since miracle sends no `urgent` key for the root.
+- `BaseNode.urgentWindows`, the urgent windows at or below a node.
+
+### Documentation
+
+- `WorkspaceResult.urgent` no longer says it is legacy and always `false`.
+- `ContainerNode.urgent`, `WorkspaceNode.urgent` and `OutputNode.isUrgent`
+  describe when a window becomes urgent and how urgency propagates.
+- `Criteria.urgent` records that miracle parses the criterion but never
+  matches on it, so a command scoped by it selects nothing.
+- `doc/ipc_coverage.md` gains an urgency section mapping each wire field and
+  `change` value to its Dart API.
+
 ## 2.0.0
 
 Audited the package against

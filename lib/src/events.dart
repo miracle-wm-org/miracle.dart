@@ -96,6 +96,14 @@ enum WorkspaceChange {
   /// [WorkspaceEvent.current] is `null` for this change.
   reload('reload'),
 
+  /// A window on the workspace started or stopped wanting attention.
+  ///
+  /// miracle sends this alongside the [WindowChange.urgent] window event, so
+  /// that a bar watching workspaces rather than windows still sees the
+  /// change. [WorkspaceEvent.current] carries the workspace, whose
+  /// [WorkspaceNode.urgent] is the new value; [WorkspaceEvent.old] is `null`.
+  urgent('urgent'),
+
   /// A change that this package does not model yet.
   ///
   /// Inspect [Event.raw] to see what miracle actually sent.
@@ -272,6 +280,16 @@ enum WindowChange {
 
   /// A mark has been added to or removed from the window.
   marked('mark'),
+
+  /// The window started or stopped wanting attention.
+  ///
+  /// A window becomes urgent when it asks to be raised while it is off
+  /// screen, and stops being urgent once it is focused.
+  /// [WindowEvent.container]'s [ContainerNode.urgent] is the new value.
+  ///
+  /// A [WorkspaceChange.urgent] workspace event is sent for the containing
+  /// workspace at the same time.
+  urgent('urgent'),
 
   /// A change that this package does not model yet.
   unknown('');

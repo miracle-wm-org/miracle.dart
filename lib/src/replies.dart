@@ -110,9 +110,12 @@ class WorkspaceResult {
   /// `true` if the workspace is focused, otherwise `false`.
   final bool focused;
 
-  /// `true` if the workspace is urgent, otherwise `false`.
+  /// `true` if a window on the workspace wants attention.
   ///
-  /// Legacy, and always `false`.
+  /// A window becomes urgent when it asks to be raised while it is off screen,
+  /// and stops being urgent once it is focused. Subscribe to
+  /// [SubscriptionType.workspace] to be told when this changes; the event
+  /// arrives as a [WorkspaceChange.urgent].
   final bool urgent;
 
   /// The name of the output to which this workspace belongs.

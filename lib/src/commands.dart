@@ -283,6 +283,10 @@ class Criteria {
   final String? workspace;
 
   /// Matches containers whose urgency is in this state, e.g. `latest`.
+  ///
+  /// miracle parses this criterion but never matches on it, so a command
+  /// scoped by it selects nothing. Read the `urgent` flag off the tree and
+  /// target the container by [containerId] instead.
   final String? urgent;
 
   /// Matches only floating containers.

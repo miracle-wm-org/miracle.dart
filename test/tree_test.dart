@@ -199,6 +199,43 @@ void main() {
     expect(node.layout, ContainerLayout.splith);
   });
 
+  test('reports urgency across the tree', () {
+    // Nothing in the documented tree wants attention.
+    expect(tree.isUrgent, isFalse);
+    expect(tree.outputs.single.isUrgent, isFalse);
+    expect(tree.workspaces.single.isUrgent, isFalse);
+    expect(tree.urgentWindows, isEmpty);
+
+    // The same tree with the window, and everything above it, urgent. miracle
+    // propagates urgency up to the output when it builds the tree.
+    final urgent =
+        _documentedTree.replaceAll('"urgent": false', '"urgent": true');
+    final urgentTree =
+        BaseNode.fromJson(jsonDecode(urgent) as Map<String, dynamic>);
+
+    // The root never carries the field, so it stays false.
+    expect(urgentTree.isUrgent, isFalse);
+    expect(urgentTree.outputs.single.isUrgent, isTrue);
+    expect(urgentTree.workspaces.single.isUrgent, isTrue);
+    expect(urgentTree.workspaces.single.urgent, isTrue);
+
+    final window = urgentTree.urgentWindows.single;
+    expect(window.appId, 'kitty');
+    expect(window.urgent, isTrue);
+    expect(window.isUrgent, isTrue);
+  });
+
+  test('treats an omitted urgent field as not urgent', () {
+    final node = BaseNode.fromJson({
+      'id': 3,
+      'name': 'no-urgency',
+      'type': 'con',
+      'rect': {'x': 0, 'y': 0, 'width': 10, 'height': 10},
+    });
+
+    expect(node.isUrgent, isFalse);
+  });
+
   test('rejects a node whose type it cannot place', () {
     expect(
       () => BaseNode.fromJson({'id': 1, 'name': 'x', 'type': 'nonsense'}),

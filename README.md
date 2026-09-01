@@ -12,7 +12,7 @@ every message, every event and every command. See
 
 ```yaml
 dependencies:
-  miracle: ^2.0.0
+  miracle: ^2.1.0
 ```
 
 ## Connecting
@@ -112,6 +112,38 @@ await connection.subscribeToPlugin('my-plugin');
 connection.pluginEventsFor('my-plugin').listen(print);
 
 final result = await connection.pluginCommand('my-plugin', {'action': 'toggle'});
+```
+
+## Urgency
+
+A window that asks to be raised while it is off screen is flagged as urgent
+rather than being allowed to steal focus, and the flag clears once it is
+focused. Urgency propagates up the tree, so a workspace or an output is urgent
+whenever a window beneath it is:
+
+```dart
+for (final window in tree.urgentWindows) {
+  print('${window.appId} wants attention');
+}
+
+final urgentWorkspaces = tree.workspaces.where((w) => w.isUrgent);
+```
+
+miracle announces a change on both the `window` and the `workspace` event, so
+a bar can watch whichever it already draws:
+
+```dart
+connection.windowEvents
+    .where((event) => event.change == WindowChange.urgent)
+    .listen((event) {
+  print('${event.container.appId} is urgent: ${event.container.urgent}');
+});
+
+connection.workspaceEvents
+    .where((event) => event.change == WorkspaceChange.urgent)
+    .listen((event) {
+  print('workspace ${event.current?.name} is urgent: ${event.current?.urgent}');
+});
 ```
 
 ## Example
