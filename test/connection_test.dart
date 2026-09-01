@@ -106,6 +106,24 @@ void main() {
           const Rect(x: 0, y: 23, width: 1920, height: 1057));
     });
 
+    test('GET_WORKSPACES reports an urgent workspace', () async {
+      replyWith([
+        {
+          'num': 2,
+          'name': '2',
+          'visible': false,
+          'focused': false,
+          'urgent': true,
+          'output': 'eDP-1',
+          'rect': {'x': 0, 'y': 23, 'width': 1920, 'height': 1057},
+        }
+      ]);
+
+      final workspaces = await connection.getWorkspaces();
+
+      expect(workspaces.single.urgent, isTrue);
+    });
+
     test('GET_OUTPUTS returns typed outputs', () async {
       replyWith([
         {
@@ -454,6 +472,51 @@ void main() {
       expect(window.container.pid, 19787);
       expect(window.container.isWindow, isTrue);
       expect(window.container.windowProperties.className, 'URxvt');
+    });
+
+    test('delivers a window urgency event', () async {
+      final event = connection.windowEvents.first;
+
+      miracle.pushEvent(IpcType.ipcEventWindow.value, {
+        'change': 'urgent',
+        'container': {
+          'id': 12,
+          'name': 'kitty',
+          'type': 'con',
+          'rect': {'x': 0, 'y': 0, 'width': 0, 'height': 0},
+          'window': 4194313,
+          'urgent': true,
+          'nodes': [],
+        },
+      });
+
+      final window = await event;
+      expect(window.change, WindowChange.urgent);
+      expect(window.container.urgent, isTrue);
+      expect(window.container.isUrgent, isTrue);
+    });
+
+    test('delivers the workspace urgency event sent alongside it', () async {
+      final event = connection.workspaceEvents.first;
+
+      // miracle sends this so that a bar watching workspaces rather than
+      // windows sees the change too. It carries no `old` workspace.
+      miracle.pushEvent(IpcType.ipcEventWorkspace.value, {
+        'change': 'urgent',
+        'old': null,
+        'current': {
+          'id': 2,
+          'name': '2',
+          'type': 'workspace',
+          'num': 2,
+          'urgent': true,
+        },
+      });
+
+      final workspace = await event;
+      expect(workspace.change, WorkspaceChange.urgent);
+      expect(workspace.old, isNull);
+      expect(workspace.current?.urgent, isTrue);
     });
 
     test('delivers output, mode, binding, shutdown and tick events', () async {

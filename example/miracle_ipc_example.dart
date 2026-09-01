@@ -27,6 +27,12 @@ void main() async {
     print('window ${window.id}: ${window.appId} at ${window.rect}');
   }
 
+  // Windows that want attention: a window that asked to be raised while it
+  // was off screen is flagged as urgent instead of stealing focus.
+  for (final window in tree.urgentWindows) {
+    print('window ${window.id}: ${window.appId} wants attention');
+  }
+
   // List the outputs and the workspaces on them.
   for (final OutputResult output in await connection.getOutputs()) {
     print('${output.name}: ${output.currentMode} -> '
@@ -83,6 +89,9 @@ void main() async {
   // Listen to one kind of event at a time...
   connection.windowEvents.listen((event) {
     print('window ${event.container.appId} ${event.change.name}');
+    if (event.change == WindowChange.urgent) {
+      print('  urgent: ${event.container.urgent}');
+    }
   });
   connection.configErrorEvents.listen((event) {
     for (final error in event.errors) {

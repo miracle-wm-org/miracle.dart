@@ -1,6 +1,6 @@
 name: miracle
 description: A library for interacting with miracle-wm.
-version: 2.0.0
+version: 2.1.0
 repository: https://github.com/miracle-wm-org/miracle.dart
 
 environment:

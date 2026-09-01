@@ -49,6 +49,28 @@ Status is one of:
 `OutputChange`, `ShutdownChange`), each with an `unknown` member so that a
 value added by a newer miracle is surfaced rather than thrown.
 
+## Urgency
+
+A window becomes urgent when it asks to be raised while it is off screen — on
+a workspace its output is not currently showing, or stashed on the scratchpad.
+Rather than let it steal focus, miracle flags it; the flag clears once the
+window is focused. Urgency propagates up the tree, so a split container,
+workspace or output is urgent whenever any node beneath it is.
+
+| Wire | Dart API |
+| --- | --- |
+| `urgent` on a `GET_TREE` node | `ContainerNode.urgent`, `WorkspaceNode.urgent`, `OutputNode.isUrgent`, or `BaseNode.isUrgent` for any of them |
+| `urgent` on a `GET_WORKSPACES` entry | `WorkspaceResult.urgent` |
+| `window` event, `change: "urgent"` | `WindowChange.urgent` |
+| `workspace` event, `change: "urgent"` | `WorkspaceChange.urgent` |
+
+miracle emits both events together: the window event says which window
+changed, and the workspace event lets a bar that watches workspaces rather
+than windows see it without walking the tree. The workspace event carries no
+`old` workspace.
+
+`BaseNode.urgentWindows` lists the urgent windows at or below a node.
+
 ## Commands
 
 Every documented command has a named constructor on `MiracleCommand`.
@@ -100,3 +122,9 @@ follows the compositor and accepts the wiki's spelling where it can.
 - `GET_WORKSPACES` documents `urgent` but the example omits it, and miracle
   omits several fields on split containers (`pid`, `app_id`,
   `scratchpad_state`). Every model decodes tolerantly for this reason.
+- The root node of `GET_TREE` carries no `urgent` key at all, so
+  `RootNode.isUrgent` is always `false`. Read urgency from the outputs below
+  it instead.
+- The `urgent` command criterion is parsed by miracle but never matched
+  against, so `[urgent="latest"] focus` selects nothing. `Criteria.urgent`
+  builds it for completeness and is documented as inert.

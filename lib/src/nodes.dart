@@ -325,6 +325,20 @@ sealed class BaseNode {
   /// The floating children of this node.
   List<BaseNode> get floatingNodes;
 
+  /// Whether this node wants attention.
+  ///
+  /// A window becomes urgent when it asks to be raised while it is off screen,
+  /// and stops being urgent once it is focused. Urgency propagates up the
+  /// tree: a container, workspace or output is urgent whenever any node
+  /// beneath it is, so a status bar can read it at whichever level it draws.
+  ///
+  /// [RootNode] never reports urgency, since miracle does not send the field
+  /// for it.
+  ///
+  /// This is the uniform spelling of [OutputNode.isUrgent],
+  /// [WorkspaceNode.urgent] and [ContainerNode.urgent].
+  bool get isUrgent;
+
   String treeString([int depth = 0]);
 
   @override
@@ -387,6 +401,16 @@ sealed class BaseNode {
   Iterable<ContainerNode> get windows =>
       walk().whereType<ContainerNode>().where((node) => node.isWindow);
 
+  /// Every window at or below this node that wants attention.
+  ///
+  /// ```dart
+  /// for (final window in tree.urgentWindows) {
+  ///   print('${window.appId} wants attention');
+  /// }
+  /// ```
+  Iterable<ContainerNode> get urgentWindows =>
+      windows.where((node) => node.urgent);
+
   /// The focused node at or below this node, or `null` if none is focused.
   BaseNode? get focusedNode {
     for (final node in walk()) {
@@ -417,6 +441,10 @@ class RootNode extends BaseNode {
 
   @override
   List<BaseNode> get floatingNodes => const [];
+
+  /// Always `false`; miracle does not report urgency on the root node.
+  @override
+  bool get isUrgent => false;
 
   RootNode({
     required super.id,
@@ -505,7 +533,11 @@ class OutputNode extends BaseNode {
   /// Whether the output currently has focus.
   final bool isFocused;
 
-  /// Whether the output is marked as urgent.
+  /// Whether any window on this output wants attention.
+  ///
+  /// Urgency propagates up the tree, so an output is urgent whenever one of
+  /// its workspaces is. See [BaseNode.isUrgent].
+  @override
   final bool isUrgent;
 
   /// The border type for this output.
@@ -636,7 +668,10 @@ class WorkspaceNode extends BaseNode {
   /// Whether the workspace currently has focus.
   final bool focused;
 
-  /// Whether the workspace is marked as urgent.
+  /// Whether any window on this workspace wants attention.
+  ///
+  /// Urgency propagates up the tree, so a workspace is urgent whenever one of
+  /// the windows on it is, floating windows included. See [BaseNode.isUrgent].
   final bool urgent;
 
   /// The name of the output this workspace belongs to.
@@ -719,6 +754,9 @@ class WorkspaceNode extends BaseNode {
   bool get hasNumber => num >= 0;
 
   @override
+  bool get isUrgent => urgent;
+
+  @override
   String treeString([int depth = 0]) {
     final indent = '  ' * depth;
     final rectStr = '(${rect.x}, ${rect.y}, ${rect.width}x${rect.height})';
@@ -780,7 +818,16 @@ class ContainerNode extends BaseNode {
   /// The id of the window in this container, if it holds one.
   final int? window;
 
-  /// Whether this container is marked as urgent.
+  /// Whether this container wants attention.
+  ///
+  /// A window becomes urgent when it asks to be raised while it is off
+  /// screen — on a workspace its output is not currently showing, or stashed
+  /// on the scratchpad — and stops being urgent once it is focused. Rather
+  /// than let it steal focus, miracle flags it and emits a `window` event
+  /// whose change is `urgent`.
+  ///
+  /// A container that groups other containers rather than holding a window is
+  /// urgent when any container beneath it is. See [BaseNode.isUrgent].
   final bool urgent;
 
   /// The list of floating child nodes.
@@ -888,6 +935,9 @@ class ContainerNode extends BaseNode {
 
   /// Whether this container holds an actual window rather than grouping others.
   bool get isWindow => window != null;
+
+  @override
+  bool get isUrgent => urgent;
 
   /// Whether this container is floating rather than tiled.
   bool get isFloating => type == NodeType.floatingContainer;
