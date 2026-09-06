@@ -1,4 +1,4 @@
-# miracle-ipc.dart
+# miracle.dart
 [![CI](https://github.com/miracle-wm-org/miracle.dart/actions/workflows/ci.yml/badge.svg)](https://github.com/miracle-wm-org/miracle.dart/actions/workflows/ci.yml)
 
 A strongly-typed Dart API for interacting with the [miracle](https://miracle-wm.org)
