@@ -1,6 +1,6 @@
 /// A strongly-typed Dart API for miracle-wm's IPC mechanism.
 ///
-/// The entry point is [MiracleConnection], which speaks the i3-compatible
+/// The entry point is [MiracleConnection], which speaks the miracle-compatible
 /// protocol documented at <https://wiki.miracle-wm.org/develop/ipc/>:
 ///
 /// ```dart
