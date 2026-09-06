@@ -101,6 +101,7 @@ void main() {
       expect(IpcType.fromValue(0), IpcType.ipcCommand);
       expect(IpcType.fromValue(200), IpcType.ipcGetDebugState);
       expect(IpcType.fromValue(201), IpcType.ipcPluginCommand);
+      expect(IpcType.fromValue(202), IpcType.ipcGetKeybinds);
       expect(IpcType.fromValue(0x80000016), IpcType.ipcEventConfigErrors);
       expect(IpcType.fromValue(0x80000017), IpcType.ipcEventPlugin);
       expect(IpcType.fromValue(0x80000099), isNull);

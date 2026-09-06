@@ -49,6 +49,12 @@ enum IpcType {
   /// * [MiracleConnection.pluginCommand]
   ipcPluginCommand(201),
 
+  /// Retrieves the effective keybindings from miracle's configuration.
+  ///
+  /// See also:
+  /// * [MiracleConnection.getKeybinds]
+  ipcGetKeybinds(202),
+
   // Events sent from miracle to clients. Events have the highest bit set.
   ipcEventWorkspace(0x80000000 | 0),
   ipcEventOutput(0x80000000 | 1),

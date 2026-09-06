@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.3.0
+
+Adds support for miracle's `GET_KEYBINDS` IPC message, documented at
+<https://wiki.miracle-wm.org/develop/ipc/get_keybinds/>. It reports the
+effective keybindings from the running compositor's configuration, so a bar or
+a configuration tool can show what a key does right now without reparsing the
+configuration file.
+
+### API additions
+
+- `MiracleConnection.getKeybinds`, returning a `KeybindsResult` with the
+  resolved `primaryModifier` and every configured `Keybind`.
+- `Keybind`, carrying the built-in `action` (plus the raw `actionName`, so an
+  action miracle adds before this package knows about it stays visible), the
+  shell `command`, the `keyboardAction`, the resolved `modifiers`, the
+  `configuredModifiers` as written in the configuration file, and the keysym.
+- `KeybindModifiers`, a typed `Modifier` list alongside the lossless
+  `modifier_mask` int, with `has(Modifier)`.
+- `IpcType.ipcGetKeybinds`, the wire type (202).
+
+The reply reuses the configuration API's `Modifier`, `BuiltInKeyCommand` and
+`KeyboardAction` enums, which already carry exactly these wire names.
+
 ## 2.2.0
 
 Adds `MiracleConfig`, an API for reading and writing miracle's configuration

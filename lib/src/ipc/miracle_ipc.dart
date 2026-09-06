@@ -9,6 +9,7 @@ import 'debug_state.dart';
 import 'events.dart';
 import 'ipc_type.dart';
 import 'json.dart';
+import 'keybinds.dart';
 import 'nodes.dart';
 import 'replies.dart';
 
@@ -555,6 +556,14 @@ class MiracleConnection extends Stream<Event> {
     final response =
         await _sendAndAwaitResponse(IpcType.ipcGetBindingState, '');
     return BindingStateResult.fromJson(asObject(jsonDecode(response)));
+  }
+
+  /// Gets the effective keybindings from miracle's configuration.
+  ///
+  /// Throws a [MiracleConnectionException] if not connected.
+  Future<KeybindsResult> getKeybinds() async {
+    final response = await _sendAndAwaitResponse(IpcType.ipcGetKeybinds, '');
+    return KeybindsResult.fromJson(asObject(jsonDecode(response)));
   }
 
   /// Gets a snapshot of miracle's debugging state.

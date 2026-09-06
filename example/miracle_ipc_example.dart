@@ -43,6 +43,14 @@ void main() async {
   print(await connection.getBindingModes());
   print(await connection.getBindingState());
 
+  // Get the keybindings that miracle's configuration currently has in effect.
+  final keybinds = await connection.getKeybinds();
+  for (final keybind in keybinds.keybinds) {
+    final modifiers = keybind.modifiers.modifiers.map((m) => m.wireName);
+    print('${modifiers.join('+')}+${keybind.xkbKeysymName} -> '
+        '${keybind.actionName ?? keybind.command}');
+  }
+
   // Get the marks that are currently set.
   print(await connection.getMarks());
 

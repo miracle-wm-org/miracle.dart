@@ -192,13 +192,101 @@ void main() {
     });
 
     test('GET_BINDING_MODES and GET_BINDING_STATE', () async {
-      miracle.onRequest = (type, payload) =>
-          type == IpcType.ipcGetBindingModes.value
-              ? jsonEncode(['default', 'resize'])
-              : jsonEncode({'name': 'resize'});
+      miracle.onRequest =
+          (type, payload) =>
+              type == IpcType.ipcGetBindingModes.value
+                  ? jsonEncode(['default', 'resize'])
+                  : jsonEncode({'name': 'resize'});
 
       expect((await connection.getBindingModes()).modes, ['default', 'resize']);
       expect((await connection.getBindingState()).name, 'resize');
+    });
+
+    test('GET_KEYBINDS decodes the configured keybindings', () async {
+      replyWith({
+        'primary_modifier': {
+          'modifiers': ['meta'],
+          'modifier_mask': 4096,
+        },
+        'keybinds': [
+          {
+            'action': null,
+            'command': 'echo Hi',
+            'keyboard_action': 'down',
+            'modifiers': ['meta'],
+            'modifier_mask': 4096,
+            'configured_modifiers': ['primary'],
+            'xkb_keysym': 120,
+            'xkb_keysym_name': 'x',
+          },
+          {
+            'action': 'toggle_floating',
+            'command': null,
+            'keyboard_action': 'down',
+            'modifiers': ['meta', 'shift'],
+            'modifier_mask': 4112,
+            'configured_modifiers': ['primary', 'shift'],
+            'xkb_keysym': 32,
+            'xkb_keysym_name': 'space',
+          },
+          {
+            'action': 'do_a_barrel_roll',
+            'command': null,
+            'keyboard_action': 'up',
+            'modifiers': ['meta', 'hyper'],
+            'modifier_mask': 4096 | 1 << 20,
+            'configured_modifiers': ['primary', 'hyper'],
+            'xkb_keysym': 98,
+            'xkb_keysym_name': 'b',
+          },
+        ],
+      });
+
+      final result = await connection.getKeybinds();
+
+      expect(result.primaryModifier.modifiers, [Modifier.meta]);
+      expect(result.primaryModifier.mask, 4096);
+      expect(result.primaryModifier.has(Modifier.meta), isTrue);
+      expect(result.keybinds, hasLength(3));
+
+      final command = result.keybinds[0];
+      expect(command.action, isNull);
+      expect(command.actionName, isNull);
+      expect(command.command, 'echo Hi');
+      expect(command.keyboardAction, KeyboardAction.down);
+      expect(command.modifiers.modifiers, [Modifier.meta]);
+      expect(command.modifiers.mask, 4096);
+      expect(command.configuredModifiers, [Modifier.primary]);
+      expect(command.xkbKeysym, 120);
+      expect(command.xkbKeysymName, 'x');
+
+      final builtIn = result.keybinds[1];
+      expect(builtIn.action, BuiltInKeyCommand.toggleFloating);
+      expect(builtIn.actionName, 'toggle_floating');
+      expect(builtIn.command, isNull);
+      expect(builtIn.configuredModifiers, [Modifier.primary, Modifier.shift]);
+
+      // An action this package does not know about is still visible by name,
+      // and an unknown modifier is skipped without losing the mask.
+      final unknown = result.keybinds[2];
+      expect(unknown.action, isNull);
+      expect(unknown.actionName, 'do_a_barrel_roll');
+      expect(unknown.keyboardAction, KeyboardAction.up);
+      expect(unknown.modifiers.modifiers, [Modifier.meta]);
+      expect(unknown.modifiers.mask, 4096 | 1 << 20);
+
+      expect(miracle.requests.single.$1, IpcType.ipcGetKeybinds.value);
+      expect(miracle.requests.single.$2, isEmpty);
+    });
+
+    test('GET_KEYBINDS tolerates a missing keybinds array', () async {
+      replyWith({'primary_modifier': {}});
+
+      final result = await connection.getKeybinds();
+
+      expect(result.keybinds, isEmpty);
+      expect(result.primaryModifier.modifiers, isEmpty);
+      expect(result.primaryModifier.mask, 0);
     });
 
     test('SEND_TICK forwards a string payload verbatim', () async {

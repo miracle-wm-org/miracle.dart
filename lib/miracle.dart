@@ -41,6 +41,7 @@ export 'src/ipc/debug_state.dart';
 export 'src/ipc/events.dart';
 export 'src/ipc/geometry.dart';
 export 'src/ipc/ipc_type.dart';
+export 'src/ipc/keybinds.dart';
 export 'src/ipc/miracle_ipc.dart';
 export 'src/ipc/nodes.dart';
 export 'src/ipc/replies.dart';
