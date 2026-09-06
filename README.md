@@ -13,18 +13,6 @@ dependencies:
   miracle: ^2.1.0
 ```
 
-## Connecting
-
-The socket path is read from `MIRACLESOCK`, falling back to `SWAYSOCK` and
-then `I3SOCK`.
-
-```dart
-import 'package:miracle/miracle.dart';
-
-final connection = MiracleConnection();
-await connection.connect();
-```
-
 ## Example
 
 See [`example/miracle_ipc_example.dart`](example/miracle_ipc_example.dart) for
