@@ -1,0 +1,7 @@
+# Provenance of config.h in this directory.
+#
+# Regenerate with: dart run tool/generate_bindings.dart
+repo=https://github.com/miracle-wm-org/miracle-wm
+ref=42e2b1f5f2695c75cadce2d9b662fb87c7484443
+commit=42e2b1f5f2695c75cadce2d9b662fb87c7484443
+path=miracle-wm-c/include/miracle/config.h

@@ -1,0 +1,24 @@
+# Configuration for the FFI bindings to libmiracle-wm-c.
+#
+# Regenerate with: dart run tool/generate_bindings.dart
+name: MiracleConfigBindings
+description: 'FFI bindings for libmiracle-wm-c (miracle-wm configuration).'
+output: 'lib/src/config/bindings.g.dart'
+headers:
+  entry-points:
+    - 'third_party/miracle/config.h'
+  include-directives:
+    - '**config.h'
+preamble: |
+  // AUTO-GENERATED FILE - DO NOT EDIT.
+  //
+  // Regenerate with: dart run tool/generate_bindings.dart
+  //
+  // ignore_for_file: type=lint, unused_field, camel_case_types, non_constant_identifier_names, constant_identifier_names
+comments:
+  style: any
+  length: full
+# The only enum in the header is the error level, which the C library always
+# passes as a plain int. FFIgen's warning about implementation-defined enum
+# widths is noise here, and it is emitted at SEVERE.
+silence-enum-warning: true

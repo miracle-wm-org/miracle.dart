@@ -1,5 +1,67 @@
 # Changelog
 
+## 2.2.0
+
+Adds `MiracleConfig`, an API for reading and writing miracle's configuration
+file. It rehomes the Dart FFI bindings from the
+[miracle-settings](https://github.com/miracle-wm-org/miracle-settings)
+repository, which has been archived.
+
+The bindings are generated with `ffigen` from the C header that ships with
+miracle-wm, and both the header and the generated code are checked in; CI
+regenerates them and fails on drift.
+
+### API additions
+
+- `MiracleConfig`, loaded with `MiracleConfig.load(path)` or
+  `MiracleConfig.loadDefault()`. Scalar settings — gaps, `terminal`,
+  `resizeJump`, `primaryModifier`, `backgroundColor` and the rest — are plain
+  getters and setters. `save()` writes back; `dispose()` frees the native
+  configuration, with a `Finalizer` as a backstop.
+- Grouped settings as live views: `border`, `mouse`, `touchpad`, `keymap`,
+  `cursor`, `magnifier`, `dragAndDrop`, `outputFilter`, `hoverClick`,
+  `simulatedSecondaryClick`, `slowKeys` and `stickyKeys`.
+- Collections as write-through `List` views: `includes`, `plugins`,
+  `startupApps`, `environmentVariables`, `workspaceConfigs`,
+  `customKeyCommands`, `builtInKeyCommandOverrides` and `animateableEvents`.
+- Enums covering the C library's option tables: `Modifier`, `MouseButton`,
+  `PointerAction`, `KeyboardAction`, `BuiltInKeyCommand`, `AnimationType`,
+  `EaseFunction`, `CursorFocusMode`, `Handedness`, `Acceleration`,
+  `TouchpadClickMode` and `TouchpadScrollMode`. A test checks each against the
+  live option tables, so an upstream renumbering cannot pass unnoticed.
+- Value types `RgbaColor`, `StartupApp`, `EnvironmentVariable`,
+  `WorkspaceConfig`, `Plugin`, `CustomKeyCommand`, `KeyCommandOverride`,
+  `BuiltInAnimation`, `MiracleConfigError` and `MiracleConfigSaveResult`.
+- `MiracleConfigException`, and `MiracleConfig.isAvailable` for checking
+  without throwing. Importing `package:miracle` never loads the native library,
+  so the IPC API is unaffected on systems without miracle-wm installed.
+
+### Requirements
+
+- The configuration API needs `libmiracle-wm-c`, installed by miracle-wm 0.10
+  and newer. The IPC API has no new requirements.
+- The package now depends on `package:ffi`, which raises the SDK lower bound
+  from 3.0 to 3.7. `ffigen` is deliberately not a dev dependency — it needs
+  Dart 3.10 — and is activated globally by `tool/generate_bindings.dart`
+  instead.
+
+### Internal
+
+- The IPC sources moved from `lib/src/` into `lib/src/ipc/`, mirroring the new
+  `lib/src/config/`. Nothing public moved: `package:miracle/miracle.dart`
+  exports exactly the same names as before.
+
+### Known upstream limitations
+
+Two settings can be changed in memory but are not written by miracle's own
+serialiser, so `save()` drops them. Both are documented on the members and
+pinned by tests:
+
+- `primaryButton` has neither a reader nor a writer in miracle's configuration
+  file; it is set by plugins.
+- `keyRepeatDelay` and `keyRepeatRate` are only written when `keymap` is also
+  set, because miracle emits its whole `keyboard:` block behind that check.
+
 ## 2.1.0
 
 Covers the urgency support added in

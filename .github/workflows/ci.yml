@@ -34,6 +34,36 @@ jobs:
       - name: Test
         run: dart test --reporter expanded
 
+  bindings:
+    name: Bindings up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      # ffigen parses the C header with libclang.
+      - name: Install libclang
+        run: sudo apt-get update && sudo apt-get install -y libclang-dev
+
+      - name: Install dependencies
+        run: dart pub get
+
+      # Pinned so that a new ffigen release cannot silently change the output.
+      - name: Install ffigen
+        run: dart pub global activate ffigen 21.0.0
+
+      # Regenerating from the commit pinned in third_party/miracle/VERSION must
+      # be a no-op. A diff here means either the vendored header or the
+      # generated bindings were edited by hand.
+      - name: Regenerate the bindings
+        run: dart run tool/generate_bindings.dart
+
+      - name: Check for drift
+        run: git diff --exit-code third_party/miracle lib/src/config/bindings.g.dart
+
   package:
     name: Package
     runs-on: ubuntu-latest
