@@ -121,6 +121,11 @@ class WorkspaceResult {
   /// The name of the output to which this workspace belongs.
   final String output;
 
+  /// How this workspace places the windows that are opened on it.
+  ///
+  /// See [WorkspaceNode.policy].
+  final WindowPlacementPolicy policy;
+
   /// The rectangle of this workspace.
   final Rect rect;
 
@@ -131,6 +136,7 @@ class WorkspaceResult {
     required this.focused,
     required this.urgent,
     required this.output,
+    this.policy = WindowPlacementPolicy.tile,
     required this.rect,
   });
 
@@ -142,13 +148,15 @@ class WorkspaceResult {
       focused: asBool(json['focused']),
       urgent: asBool(json['urgent']),
       output: asString(json['output']),
+      policy: WindowPlacementPolicy.parse(json['policy']),
       rect: Rect.parse(json['rect']),
     );
   }
 
   @override
   String toString() => 'WorkspaceResult(num: $num, name: "$name", '
-      'visible: $visible, focused: $focused, output: "$output", rect: $rect)';
+      'visible: $visible, focused: $focused, output: "$output", '
+      'policy: ${policy.name}, rect: $rect)';
 }
 
 /// Created in response to a [MiracleConnection.getOutputs] call.

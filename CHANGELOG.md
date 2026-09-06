@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.4.0
+
+Adds support for miracle's per-workspace window placement policy. A workspace
+either tiles the windows opened on it, which is the default, or floats them and
+centres them over the workspace. The policy is set with the
+`workspace [<num>|<name>] policy float|tile` command, documented at
+<https://wiki.miracle-wm.org/develop/ipc/commands/workspace/>, and it is
+reported by `GET_TREE` and `GET_WORKSPACES`. Changing it only affects windows
+opened afterwards; the windows already on the workspace stay where they are.
+
+### API additions
+
+- `WindowPlacementPolicy`, with `tile` and `float`. A miracle that predates the
+  policy omits the field and always tiles, so it reads as `tile` there.
+- `WorkspaceNode.policy`, read from `GET_TREE` and printed by `toString`.
+  Workspace events carry whole workspace nodes, so `current` and `old` report
+  the policy too.
+- `WorkspaceResult.policy`, read from `GET_WORKSPACES`.
+- `MiracleCommand.workspacePolicy`, which targets the focused workspace by
+  default or a workspace given by number or name.
+
 ## 2.3.0
 
 Adds support for miracle's `GET_KEYBINDS` IPC message, documented at

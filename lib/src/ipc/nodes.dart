@@ -132,6 +132,39 @@ enum ContainerLayout {
       fromString(asString(json, 'none')) ?? ContainerLayout.none;
 }
 
+/// How a workspace places the windows that are opened on it.
+///
+/// Set with the `workspace [<num>|<name>] policy float|tile` command; see
+/// <https://wiki.miracle-wm.org/develop/ipc/commands/workspace/>. Changing it
+/// only affects windows opened afterwards; the windows already on the
+/// workspace stay where they are.
+enum WindowPlacementPolicy {
+  /// Windows opened on the workspace are added to its tiling grid.
+  tile('tile'),
+
+  /// Windows opened on the workspace are floated over it.
+  float('float');
+
+  const WindowPlacementPolicy(this.wireName);
+
+  /// The name used on the wire.
+  final String wireName;
+
+  static WindowPlacementPolicy? fromString(String value) {
+    for (final policy in WindowPlacementPolicy.values) {
+      if (policy.wireName == value) return policy;
+    }
+    return null;
+  }
+
+  /// Reads a policy from [json], falling back to [WindowPlacementPolicy.tile].
+  ///
+  /// A miracle that predates the field omits it and always tiles, so the
+  /// fallback matches what that compositor actually does.
+  static WindowPlacementPolicy parse(Object? json) =>
+      fromString(asString(json, 'tile')) ?? WindowPlacementPolicy.tile;
+}
+
 /// Where a container sits with respect to the scratchpad.
 enum ScratchpadState {
   /// The container is not on the scratchpad.
@@ -686,6 +719,12 @@ class WorkspaceNode extends BaseNode {
   /// The layout algorithm used for this workspace's children.
   final ContainerLayout layout;
 
+  /// How this workspace places the windows that are opened on it.
+  ///
+  /// Only affects newly opened windows; the windows already on the workspace
+  /// are left where they are when the policy changes.
+  final WindowPlacementPolicy policy;
+
   /// The orientation of the workspace layout.
   final String orientation;
 
@@ -719,6 +758,7 @@ class WorkspaceNode extends BaseNode {
     required this.border,
     required this.borderWidth,
     required this.layout,
+    this.policy = WindowPlacementPolicy.tile,
     required this.orientation,
     required this.windowRect,
     required this.decoRect,
@@ -741,6 +781,7 @@ class WorkspaceNode extends BaseNode {
       border: BorderType.parse(json['border']),
       borderWidth: asInt(json['current_border_width']),
       layout: ContainerLayout.parse(json['layout']),
+      policy: WindowPlacementPolicy.parse(json['policy']),
       orientation: asString(json['orientation'], 'none'),
       windowRect: Rect.parse(json['window_rect']),
       decoRect: Rect.parse(json['deco_rect']),
@@ -762,7 +803,8 @@ class WorkspaceNode extends BaseNode {
     final rectStr = '(${rect.x}, ${rect.y}, ${rect.width}x${rect.height})';
     final buffer = StringBuffer();
     buffer.writeln('$indent[WORKSPACE] id=$id, name="$name", num=$num, '
-        'layout=${layout.name}, focused=$focused, visible=$visible, output=$output, rect=$rectStr');
+        'layout=${layout.name}, policy=${policy.name}, focused=$focused, '
+        'visible=$visible, output=$output, rect=$rectStr');
     if (floatingNodes.isNotEmpty) {
       buffer.writeln('$indent  Floating nodes:');
       for (var child in floatingNodes) {

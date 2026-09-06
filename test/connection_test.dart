@@ -102,6 +102,8 @@ void main() {
       expect(workspaces.single.output, 'eDP-1');
       // `urgent` is absent from the documented payload.
       expect(workspaces.single.urgent, isFalse);
+      // So is `policy`, which pre-dates miracle's placement policies.
+      expect(workspaces.single.policy, WindowPlacementPolicy.tile);
       expect(workspaces.single.rect,
           const Rect(x: 0, y: 23, width: 1920, height: 1057));
     });
@@ -122,6 +124,25 @@ void main() {
       final workspaces = await connection.getWorkspaces();
 
       expect(workspaces.single.urgent, isTrue);
+    });
+
+    test('GET_WORKSPACES reports a floating workspace', () async {
+      replyWith([
+        {
+          'num': 3,
+          'name': '3',
+          'visible': true,
+          'focused': true,
+          'urgent': false,
+          'output': 'eDP-1',
+          'policy': 'float',
+          'rect': {'x': 0, 'y': 23, 'width': 1920, 'height': 1057},
+        }
+      ]);
+
+      final workspaces = await connection.getWorkspaces();
+
+      expect(workspaces.single.policy, WindowPlacementPolicy.float);
     });
 
     test('GET_OUTPUTS returns typed outputs', () async {
@@ -503,13 +524,22 @@ void main() {
       miracle.pushEvent(IpcType.ipcEventWorkspace.value, {
         'change': 'focus',
         'old': {'id': 1, 'name': '1', 'type': 'workspace', 'num': 1},
-        'current': {'id': 2, 'name': '2', 'type': 'workspace', 'num': 2},
+        'current': {
+          'id': 2,
+          'name': '2',
+          'type': 'workspace',
+          'num': 2,
+          'policy': 'float',
+        },
       });
 
       final workspace = await event;
       expect(workspace.change, WorkspaceChange.focus);
       expect(workspace.old?.name, '1');
       expect(workspace.current?.name, '2');
+      // The event carries whole workspace nodes, policy included.
+      expect(workspace.current?.policy, WindowPlacementPolicy.float);
+      expect(workspace.old?.policy, WindowPlacementPolicy.tile);
     });
 
     test('delivers a workspace reload event with no workspace', () async {

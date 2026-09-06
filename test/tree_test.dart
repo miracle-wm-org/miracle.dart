@@ -50,6 +50,7 @@ const String _documentedTree = '''
           "focused": false,
           "geometry": {"height": 0, "width": 0, "x": 0, "y": 0},
           "layout": "splith",
+          "policy": "tile",
           "orientation": "none",
           "output": "unknown-1",
           "rect": {"height": 1014, "width": 1270, "x": 5, "y": 5},
@@ -121,6 +122,7 @@ void main() {
     expect(workspace.num, 1);
     expect(workspace.hasNumber, isTrue);
     expect(workspace.layout, ContainerLayout.splith);
+    expect(workspace.policy, WindowPlacementPolicy.tile);
     expect(workspace.output, 'unknown-1');
 
     final window = tree.windows.single;
@@ -162,7 +164,27 @@ void main() {
     expect(printed, contains('[ROOT]'));
     expect(printed, contains('[OUTPUT]'));
     expect(printed, contains('[WORKSPACE]'));
+    expect(printed, contains('policy=tile'));
     expect(printed, contains('app_id="kitty"'));
+  });
+
+  test('parses the workspace placement policy', () {
+    WorkspaceNode workspaceWith(Map<String, dynamic> extra) =>
+        BaseNode.fromJson({
+          'id': 1,
+          'name': '1',
+          'type': 'workspace',
+          'rect': {'x': 0, 'y': 0, 'width': 10, 'height': 10},
+          ...extra,
+        }) as WorkspaceNode;
+
+    expect(
+        workspaceWith({'policy': 'float'}).policy, WindowPlacementPolicy.float);
+    // An unrecognized policy and a miracle that predates the field both read
+    // as the tiling default, which is what those compositors do.
+    expect(workspaceWith({'policy': 'nonsense'}).policy,
+        WindowPlacementPolicy.tile);
+    expect(workspaceWith({}).policy, WindowPlacementPolicy.tile);
   });
 
   test('parses a floating container', () {

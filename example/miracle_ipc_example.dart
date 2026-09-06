@@ -68,6 +68,13 @@ void main() async {
     print(e);
   }
 
+  // Float everything opened on workspace 2 from now on. Windows already there
+  // stay put; `WindowPlacementPolicy.tile` puts new ones back in the grid.
+  await connection.run(MiracleCommand.workspacePolicy(
+    WindowPlacementPolicy.float,
+    workspace: '2',
+  ));
+
   // Ask a plugin to do something, and read its answer.
   final PluginCommandResult plugin = await connection.pluginCommand(
     'my-plugin',

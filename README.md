@@ -15,7 +15,7 @@ It covers two things:
 
 ```yaml
 dependencies:
-  miracle: ^2.3.0
+  miracle: ^2.4.0
 ```
 
 See [`example/miracle_ipc_example.dart`](example/miracle_ipc_example.dart) for examples of the IPC API.

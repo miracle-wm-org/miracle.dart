@@ -1,4 +1,5 @@
 import 'miracle_ipc.dart';
+import 'nodes.dart';
 
 /// A cardinal direction.
 enum Direction {
@@ -625,6 +626,22 @@ class MiracleCommand {
   /// Focuses the previously focused workspace.
   factory MiracleCommand.workspaceBackAndForth() =>
       const MiracleCommand._('workspace back_and_forth');
+
+  /// Sets how a workspace places the windows opened on it.
+  ///
+  /// Applies to the focused workspace when [workspace] is omitted, otherwise
+  /// to the workspace with that number or name. The `<num>: <name>` form works
+  /// too and is quoted for you. Windows already on the workspace are left
+  /// where they are.
+  ///
+  /// See <https://wiki.miracle-wm.org/develop/ipc/commands/workspace/>.
+  factory MiracleCommand.workspacePolicy(
+    WindowPlacementPolicy policy, {
+    String? workspace,
+  }) =>
+      MiracleCommand._('workspace '
+          '${workspace == null ? '' : '${quoteArgument(workspace)} '}'
+          'policy ${policy.wireName}');
 
   /// Renames a workspace.
   ///

@@ -231,6 +231,32 @@ void main() {
           'workspace back_and_forth');
     });
 
+    test('builds workspace policy commands', () {
+      expect(
+        MiracleCommand.workspacePolicy(WindowPlacementPolicy.tile)
+            .toCommandString(),
+        'workspace policy tile',
+      );
+      expect(
+        MiracleCommand.workspacePolicy(WindowPlacementPolicy.float,
+                workspace: '2')
+            .toCommandString(),
+        'workspace 2 policy float',
+      );
+      expect(
+        MiracleCommand.workspacePolicy(WindowPlacementPolicy.tile,
+                workspace: 'hi')
+            .toCommandString(),
+        'workspace hi policy tile',
+      );
+      expect(
+        MiracleCommand.workspacePolicy(WindowPlacementPolicy.float,
+                workspace: '2: web')
+            .toCommandString(),
+        'workspace "2: web" policy float',
+      );
+    });
+
     test('builds rename commands', () {
       expect(MiracleCommand.renameWorkspace(to: '3').toCommandString(),
           'rename workspace to 3');
