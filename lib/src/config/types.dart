@@ -172,7 +172,14 @@ class CustomKeyCommand {
   /// The modifiers that must be held.
   final Set<Modifier> modifiers;
 
-  /// The Linux key code, e.g. `KEY_F` from `linux/input-event-codes.h`.
+  /// The xkb keysym the binding fires on, e.g. `0x66` (`XKB_KEY_f`) or
+  /// `0x1008ff13` (`XKB_KEY_XF86AudioRaiseVolume`).
+  ///
+  /// Not a Linux input event code: miracle parses `key:` in its configuration
+  /// with `xkb_keysym_from_name`, writes it back with `xkb_keysym_get_name`,
+  /// and matches it against the keysym a key press *resolves* to. Shift is
+  /// therefore already applied, so Shift+Q is `XKB_KEY_Q` (`0x51`), not
+  /// `XKB_KEY_q`.
   final int key;
 
   /// The shell command to run.
@@ -227,7 +234,14 @@ class KeyCommandOverride {
   /// The modifiers that must be held.
   final Set<Modifier> modifiers;
 
-  /// The Linux key code, e.g. `KEY_F` from `linux/input-event-codes.h`.
+  /// The xkb keysym the binding fires on, e.g. `0x66` (`XKB_KEY_f`) or
+  /// `0x1008ff13` (`XKB_KEY_XF86AudioRaiseVolume`).
+  ///
+  /// Not a Linux input event code: miracle parses `key:` in its configuration
+  /// with `xkb_keysym_from_name`, writes it back with `xkb_keysym_get_name`,
+  /// and matches it against the keysym a key press *resolves* to. Shift is
+  /// therefore already applied, so Shift+Q is `XKB_KEY_Q` (`0x51`), not
+  /// `XKB_KEY_q`.
   final int key;
 
   /// The built-in command to run.
